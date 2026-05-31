@@ -70,4 +70,3 @@ stages:
             # Example:
             # az webapp deploy --resource-group <RG> --name <APP> --src-path .
           displayName: 'Deploy to Azure'
-``
