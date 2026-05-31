@@ -1,0 +1,79 @@
+trigger:
+- main   # Change to your branch
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  node_version: '18.x'   # Adjust if needed
+
+stages:
+# ========================
+# 1. BUILD STAGE (CI)
+# ========================
+- stage: Build
+  displayName: Build Stage
+  jobs:
+  - job: BuildJob
+    displayName: Build Node App
+    steps:
+
+    # Install Node.js
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '$(node_version)'
+      displayName: 'Install Node.js'
+
+    # Install dependencies
+    - script: |
+        npm install
+      displayName: 'Install dependencies'
+
+    # Build app (if applicable)
+    - script: |
+        npm run build
+      displayName: 'Build application'
+
+    # Run tests (optional but recommended)
+    - script: |
+        npm test
+      displayName: 'Run tests'
+
+    # Archive build output
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/app.zip'
+        replaceExistingArchive: true
+
+    # Publish artifact
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)/app.zip'
+        ArtifactName: 'drop'
+      displayName: 'Publish Artifact'
+
+
+# ========================
+# 2. DEPLOY STAGE (CD)
+# ========================
+- stage: Deploy
+  displayName: Deploy Stage
+  dependsOn: Build
+  condition: succeeded()
+
+  jobs:
+  - deployment: DeployJob
+    environment: 'production'  # Change or create environment
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: AzureWebApp@1
+            inputs:
+              azureSubscription: '<YOUR-SERVICE-CONNECTION>'
+              appType: 'webApp'
+              appName: '<YOUR-APP-NAME>'
+              package: '$(Pipeline.Workspace)/drop/app.zip'
