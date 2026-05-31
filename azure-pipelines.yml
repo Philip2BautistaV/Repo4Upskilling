@@ -10,7 +10,7 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: Hello, Accenture!
+- script: echo Hello, Accenture!
   displayName: 'Run a one-line script'
 
 - script: |
