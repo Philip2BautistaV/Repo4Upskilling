@@ -1,5 +1,5 @@
 trigger:
-- main   # Run pipeline when code is pushed to main
+- main   # Run CI when code is pushed to main branch
 
 pool:
   vmImage: 'ubuntu-latest'
@@ -13,15 +13,18 @@ steps:
   displayName: 'Install Node.js'
 
 # Install dependencies
-- script: npm install
+- script: |
+    npm install
   displayName: 'Install Dependencies'
 
 # Run tests
-- script: npm test
+- script: |
+    npm test
   displayName: 'Run Tests'
   continueOnError: true
 
-# Build project
-- script: npm run build
+# Build application (optional)
+- script: |
+    npm run build
   displayName: 'Build Application'
   continueOnError: true
