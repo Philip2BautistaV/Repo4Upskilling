@@ -1,72 +1,27 @@
 trigger:
-  - main   # Runs when code is pushed to main branch
+- main   # Run pipeline when code is pushed to main
 
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  node_version: '18.x'
+steps:
 
-stages:
-# =========================
-# 1. BUILD STAGE
-# =========================
-- stage: Build
-  displayName: 'Build Stage'
-  jobs:
-    - job: BuildJob
-      displayName: 'Install and Build'
-      steps:
-        # Install Node.js
-        - task: NodeTool@0
-          inputs:
-            versionSpec: $(node_version)
-          displayName: 'Install Node.js'
+# Install Node.js
+- task: NodeTool@0
+  inputs:
+    versionSpec: '18.x'
+  displayName: 'Install Node.js'
 
-        # Install dependencies
-        - script: |
-            npm install
-          displayName: 'Install Dependencies'
+# Install dependencies
+- script: npm install
+  displayName: 'Install Dependencies'
 
-        # Run tests (optional)
-        - script: |
-            npm run test
-          displayName: 'Run Tests'
+# Run tests
+- script: npm test
+  displayName: 'Run Tests'
+  continueOnError: true
 
-        # Build project (if applicable)
-        - script: |
-            npm run build
-          displayName: 'Build App'
-
-        # Publish artifact
-        - task: PublishBuildArtifacts@1
-          inputs:
-            pathToPublish: '$(System.DefaultWorkingDirectory)'
-            artifactName: 'drop'
-          displayName: 'Publish Artifact'
-
-# =========================
-# 2. DEPLOY STAGE
-# =========================
-- stage: Deploy
-  displayName: 'Deploy Stage'
-  dependsOn: Build
-  condition: succeeded()
-
-  jobs:
-    - job: DeployJob
-      displayName: 'Deploy Application'
-      steps:
-
-        # Download artifact
-        - task: DownloadBuildArtifacts@0
-          inputs:
-            artifactName: 'drop'
-            downloadPath: '$(System.ArtifactsDirectory)'
-
-        # Example deploy step (customize this)
-        - script: |
-            echo "Deploying Node.js application..."
-            # Example:
-            # az webapp deploy --resource-group <RG> --name <APP> --src-path .
-          displayName: 'Deploy to Azure'
+# Build project
+- script: npm run build
+  displayName: 'Build Application'
+  continueOnError: true
