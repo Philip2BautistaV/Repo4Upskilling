@@ -4,13 +4,13 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+- Features
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: echo Hello Philip from Accenture Philippines
+- script: echo Hello Jun from Marikina
   displayName: 'Run a one-line script'
 
 - script: |
