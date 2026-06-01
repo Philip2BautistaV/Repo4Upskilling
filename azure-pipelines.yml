@@ -10,7 +10,7 @@ pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: echo I love you Kaiden
+- script: echo Hello Philip from ACN Philippines
   displayName: 'Run a one-line script'
 
 - script: |
