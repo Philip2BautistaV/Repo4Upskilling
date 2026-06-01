@@ -14,11 +14,11 @@ steps:
   inputs:
     command: 'build'
     projects: '**/*.csproj'
-    arguments: '-- output $(Build.ArtifactStagingDirectory)/function.zip'
+    arguments: '-- output $(Build.ArtifactStagingDirectory)/function'
 
 - task: ArchiveFiles@2
   inputs:
-    rootFolderOrFile: '$(Build.BinariesDirectory)\output'
+    rootFolderOrFile: '$(Build.BinariesDirectory)/function'
     includeRootFolder: false
     archiveType: 'zip'
     archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
@@ -29,4 +29,6 @@ steps:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     ArtifactName: 'drop'
     publishLocation: 'Container'
+
+
 
