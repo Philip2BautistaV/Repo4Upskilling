@@ -14,7 +14,7 @@ steps:
   inputs:
     command: 'build'
     projects: '**/*.csproj'
-    arguments: '-- output $(Build.ArtifactStagingDirectory)/function'
+    arguments: '-- output $(Build.ArtifactStagingDirectory)/function --configuration Release'
 
 - task: ArchiveFiles@2
   inputs:
