@@ -4,13 +4,13 @@
 # https://aka.ms/yaml
 
 trigger:
-- main
+- PreProd
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
-- script: echo Arigato gozaimasu Philip from Accenture PH
+- script: echo I Love you Mommy!
   displayName: 'Run a one-line script'
 
 - script: |
