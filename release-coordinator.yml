@@ -138,7 +138,7 @@ stages:
         WEB: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'] ]
 
       steps:
-    -   powershell: |
+      - powershell: |
           Write-Host "DP=$(DP)"
           Write-Host "AI=$(AI)"
           Write-Host "WEB=$(WEB)"
