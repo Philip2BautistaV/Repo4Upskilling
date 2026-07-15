@@ -24,12 +24,6 @@ parameters:
 # Declare the coordinator repo so we can read release-config.yml from it.
 # All component CI pipelines are also declared so their artifacts are accessible.
 resources:
-  repositories:
-    - repository: coordinator
-      type: git
-      name: DBG-ACN/release-coordinator
-      ref: refs/heads/main
-
   pipelines:
     - pipeline: webapp-ci
       project: DBG-ACN
