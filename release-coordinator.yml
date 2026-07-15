@@ -27,7 +27,7 @@ resources:
   repositories:
     - repository: coordinator
       type: git
-      name: DBG-ACN/Repo4Upskilling/release-coordinator
+      name: DBG-ACN/release-coordinator
       ref: refs/heads/main
 
   pipelines:
