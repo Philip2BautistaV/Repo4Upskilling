@@ -148,11 +148,12 @@ stages:
   dependsOn:
     - ValidateConfig
 
-  condition: >
-    eq(
-      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
-      'True'
-    )
+  condition: succeeded()
+  #condition: >
+  #  eq(
+  #    stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
+  #    'True'
+  #  )
 
   jobs:
     - deployment: DataPlatformDeploy
@@ -200,11 +201,12 @@ stages:
     - ValidateConfig
     - DeployDataPlatform
 
-  condition: >
-    eq(
-      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'],
-      'True'
-    )
+  condition: succeeded()
+  #condition: >
+  #  eq(
+  #    stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'],
+  #    'True'
+  #  )
 
   jobs:
     - deployment: AIMLDeploy
@@ -253,11 +255,12 @@ stages:
     - DeployDataPlatform
     - DeployAIML
 
-  condition: >
-    eq(
-      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'],
-      'True'
-    )
+  condition: succeeded()   
+  #condition: >
+  #  eq(
+  #    stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'],
+  #    'True'
+  #  )
 
   jobs:
     - deployment: WebAppDeploy
