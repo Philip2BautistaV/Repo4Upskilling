@@ -128,7 +128,7 @@ stages:
             name: configOutput
 
   - stage: DebugVariables
-  dependsOn: ValidateConfig
+    dependsOn: ValidateConfig
 
     jobs:
     - job: ShowVariables
