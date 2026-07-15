@@ -127,7 +127,7 @@ stages:
                   displayName: "Apply database schema and Fabric changes"
                   condition: ne('${{ parameters.dryRun }}', 'true')
                   inputs:
-                    azureSubscription: "Azure subscription 1"
+                    azureSubscription: "Development Environment"
                     scriptType: bash
                     scriptLocation: inlineScript
                     inlineScript: |
@@ -171,7 +171,7 @@ stages:
                   displayName: "Deploy AIML scoring pipeline"
                   condition: ne('${{ parameters.dryRun }}', 'true')
                   inputs:
-                    azureSubscription: "Azure subscription 1"
+                    azureSubscription: "UAT/Test Environment"
                     scriptType: bash
                     scriptLocation: inlineScript
                     inlineScript: |
@@ -216,7 +216,7 @@ stages:
                   displayName: "Deploy React app and API to Azure"
                   condition: ne('${{ parameters.dryRun }}', 'true')
                   inputs:
-                    azureSubscription: "Azure subscription 1"
+                    azureSubscription: "Production Environment"
                     scriptType: bash
                     scriptLocation: inlineScript
                     inlineScript: |
