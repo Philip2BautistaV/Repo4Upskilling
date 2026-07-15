@@ -100,8 +100,8 @@ stages:
   - stage: DeployDataPlatform
     displayName: "Deploy DataPlatform"
     dependsOn: ValidateConfig
-    condition: >
-      eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
+    condition: succeeded()
+#      eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
     jobs:
       - deployment: DataPlatformDeploy
         environment: ${{ parameters.environment }}
@@ -142,10 +142,11 @@ stages:
       - ValidateConfig
       - DeployDataPlatform
     condition: >
-      and(
-        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
-        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'], 'True')
-      )
+       in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped')  
+#      and(
+#        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
+#        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'], 'True')
+#      )
     jobs:
       - deployment: AIMLDeploy
         environment: ${{ parameters.environment }}
@@ -186,11 +187,12 @@ stages:
       - DeployDataPlatform
       - DeployAIML
     condition: >
-      and(
-        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
-        in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped'),
-        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'], 'True')
-      )
+       and(3    in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),4    in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped')5  )
+#      and(
+#        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
+#        in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped'),
+#        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'], 'True')
+#     )
     jobs:
       - deployment: WebAppDeploy
         environment: ${{ parameters.environment }}
