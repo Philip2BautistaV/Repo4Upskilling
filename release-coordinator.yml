@@ -154,6 +154,20 @@ stages:
                     targetPath: $(Pipeline.Workspace)/DataPlatform
 
                 - powershell: |
+                    Write-Host "Inspecting s.zip"
+
+                    Expand-Archive `
+                      "$(Pipeline.Workspace)\DataPlatform\s.zip" `
+                      "$(Pipeline.Workspace)\Expanded" `
+                      -Force
+
+                    Get-ChildItem `
+                      "$(Pipeline.Workspace)\Expanded" `
+                      -Recurse
+
+                  displayName: "Inspect s.zip Contents"
+
+                - powershell: |
                     Write-Host "Pipeline Workspace:"
                     Write-Host "$(Pipeline.Workspace)"
 
@@ -171,6 +185,7 @@ stages:
                     archiveType: zip
                     archiveFile: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
                     replaceExistingArchive: true
+                    
                 - powershell: |
                     Write-Host "Inspecting downloaded artifact..."
                     
