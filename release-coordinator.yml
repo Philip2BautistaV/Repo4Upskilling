@@ -58,7 +58,7 @@ stages:
     jobs:
       - job: ReadConfig
         steps:
-          - checkout: coordinator
+          - checkout: self
             path: coordinator
 
           - task: PowerShell@2
