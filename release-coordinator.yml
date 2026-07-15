@@ -73,7 +73,7 @@ resources:
       branch: main
 
 pool:
-  vmImage: "windows-lates"
+  vmImage: "windows-latest"
 
 stages:
 
