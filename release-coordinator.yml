@@ -41,231 +41,258 @@ parameters:
   - name: environment
     displayName: "Target Environment"
     type: string
-    default: "staging"
+    default: staging
     values:
       - staging
       - uat
       - production
 
   - name: dryRun
-    displayName: "Dry Run (validate only, no actual deployment)"
+    displayName: "Dry Run (validate only, no deployment)"
     type: boolean
     default: false
 
-# All component CI pipelines are declared so their artifacts are accessible.
-# release-config.yml is read directly from this pipeline's own repo (checkout: self)
-# rather than as a separate resources.repositories entry.
 resources:
   pipelines:
     - pipeline: webapp-ci
       project: DBG-ACN
-      source: "WebApp-CI"
+      source: WebApp-CI
       branch: main
 
     - pipeline: dataplatform-ci
       project: DBG-ACN
-      source: "DataPlatform-CI"
+      source: DataPlatform-CI
       branch: main
 
     - pipeline: aiml-ci
       project: DBG-ACN
-      source: "AIML-CI"
+      source: AIML-CI
       branch: main
 
 pool:
-  vmImage: "windows-latest"
+  vmImage: windows-latest
 
 stages:
 
-  # Stage 0: Read release-config.yml and output which components are enabled.
-  # All subsequent stages depend on the output variables set here.
-  - stage: ValidateConfig
-    displayName: "Read Release Config"
-    jobs:
-      - job: ReadConfig
-        steps:
-          - checkout: self
-            path: coordinator
+# -------------------------------------------------------------------
+# Stage 0 - Read Release Configuration
+# -------------------------------------------------------------------
 
-          - task: PowerShell@2
-            displayName: "Parse release-config.yml and set component flags"
-            inputs:
-              targetType: inline
-              script: |
-                # Install powershell-yaml module if not present
-                if (-not (Get-Module -ListAvailable -Name powershell-yaml)) {
-                  Install-Module powershell-yaml -Force -Scope CurrentUser
-                }
-                Import-Module powershell-yaml
+- stage: ValidateConfig
+  displayName: Read Release Config
 
-                $config = Get-Content "$(Pipeline.Workspace)/coordinator/release-config.yml" | ConvertFrom-Yaml
-                $release = $config.release
+  jobs:
+    - job: ReadConfig
 
-                Write-Host "Release: $($release.name)"
-                Write-Host "Target environment: ${{ parameters.environment }}"
-                Write-Host ""
+      steps:
+        - checkout: self
+          path: coordinator
 
-                $dp  = $config.components.dataplatform.enabled
-                $ai  = $config.components.aiml.enabled
-                $web = $config.components.webapp.enabled
+        - task: PowerShell@2
+          name: configOutput
+          displayName: Parse release-config.yml
 
-                Write-Host "DP = $dp"
-                Write-Host "AI = $ai"
-                Write-Host "WEB = $web"
+          inputs:
+            targetType: inline
+            script: |
 
-                Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($dp.ToString())"
-                Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
-                Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
+              if (-not (Get-Module -ListAvailable -Name powershell-yaml)) {
+                Install-Module powershell-yaml -Force -Scope CurrentUser
+              }
 
-                Write-Host "Components in scope:"
-                if ($dp)  { Write-Host "  [1] DataPlatform" }
-                if ($ai)  { Write-Host "  [2] AIML (deploys after DataPlatform)" }
-                if ($web) { Write-Host "  [3] WebApp (deploys last)" }
-                if (-not $dp -and -not $ai -and -not $web) {
-                  Write-Error "No components are enabled in release-config.yml. Nothing to deploy."
-                  exit 1
-                }
-            name: configOutput
+              Import-Module powershell-yaml
 
-  - stage: DebugVariables
-    dependsOn: ValidateConfig
+              $config = Get-Content "$(Pipeline.Workspace)/coordinator/release-config.yml" | ConvertFrom-Yaml
 
-    jobs:
+              $dp  = $config.components.dataplatform.enabled
+              $ai  = $config.components.aiml.enabled
+              $web = $config.components.webapp.enabled
+
+              Write-Host "DP=$dp"
+              Write-Host "AI=$ai"
+              Write-Host "WEB=$web"
+
+              Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($dp.ToString())"
+              Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
+              Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
+
+# -------------------------------------------------------------------
+# Debug Variables
+# -------------------------------------------------------------------
+
+- stage: DebugVariables
+  displayName: Debug Variables
+  dependsOn: ValidateConfig
+
+  jobs:
     - job: ShowVariables
+
       variables:
         DP: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'] ]
         AI: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'] ]
         WEB: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'] ]
 
       steps:
-      - powershell: |
-          Write-Host "DP=$(DP)"
-          Write-Host "AI=$(AI)"
-          Write-Host "WEB=$(WEB)"
+        - powershell: |
+            Write-Host "DP=$(DP)"
+            Write-Host "AI=$(AI)"
+            Write-Host "WEB=$(WEB)"
 
-  # Stage 1: DataPlatform — schema changes, Fabric deployment.
-  # Skipped automatically when dataplatform.enabled = false.
-  - stage: DeployDataPlatform
-    displayName: "Deploy DataPlatform"
-    dependsOn: ValidateConfig
-    condition: eq(
-      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],  'True')
-    jobs:
-      - deployment: DataPlatformDeploy
-        environment: ${{ parameters.environment }}
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - download: none
-                - task: DownloadPipelineArtifact@2
-                  displayName: "Download DataPlatform artifact"
-                  inputs:
-                    buildType: specific
-                    project: DBG-ACN
-                    definition: $(resources.pipeline.dataplatform-ci.pipelineID)
-                    buildVersionToDownload: latestFromBranch
-                    branchName: refs/heads/main
-                    artifactName: dataplatform-drop
-                    targetPath: $(Pipeline.Workspace)/DataPlatform
-                  
-                - task: AzureWebApp@1
-                  displayName: "Deploy Package to Staging101"
-                  condition: ne('${{ parameters.dryRun }}', 'true')
-                  inputs:
-                    azureSubscription: "Development Environment"
-                    appType: 'webApp'
-                    appName: 'Staging101'
-                    package: '$(Pipeline.Workspace)\DataPlatform\s.zip'
+# -------------------------------------------------------------------
+# Stage 1 - Data Platform
+# -------------------------------------------------------------------
 
-  # Stage 2: AIML — ML pipeline deployment.
-  # Skipped when aiml.enabled = false.
-  # If DataPlatform was in scope but failed, this stage will not run.
-  # If DataPlatform was not in scope (Skipped), this stage will still run if AIML is enabled.
-  - stage: DeployAIML
-    displayName: "Deploy AIML Pipeline"
-    dependsOn:
-      - ValidateConfig
-      - DeployDataPlatform
-    condition: and(
-        succeededOrFailed(),
-        eq(
-        
-      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'],
-         'True'
-          )
-        )
-    jobs:
-      - deployment: AIMLDeploy
-        environment: ${{ parameters.environment }}
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - download: none
-                - task: DownloadPipelineArtifact@2
-                  displayName: "Download AIML artifact"
-                  inputs:
-                    buildType: specific
-                    project: DBG-ACN
-                    definition: $(resources.pipeline.aiml-ci.pipelineID)
-                    buildVersionToDownload: latestFromBranch
-                    branchName: refs/heads/main
-                    artifactName: aiml-drop
-                    targetPath: $(Pipeline.Workspace)/aiml
+- stage: DeployDataPlatform
+  displayName: Deploy DataPlatform
 
-                - task: AzureWebApp@1
-                  displayName: "Deploy Package to ORT-Environment"
-                  condition: ne('${{ parameters.dryRun }}', 'true')
-                  inputs:
-                    azureSubscription: "UAT/Test Environment"
-                    appType: 'webApp'
-                    appName: 'ORT-Environment'
-                    package: '$(Pipeline.Workspace)\aiml\s.zip'
+  dependsOn:
+    - ValidateConfig
 
-  # Stage 3: WebApp — React frontend and Web APIs. Always the last component deployed.
-  # Waits for both DataPlatform and AIML to complete or be skipped before proceeding.
-  # If either of those stages failed (not skipped), WebApp deployment is blocked.
-  - stage: DeployWebApp
-    displayName: "Deploy WebApp (React + API)"
-    dependsOn:
-      - ValidateConfig
-      - DeployDataPlatform
-      - DeployAIML
-    condition: and(
-      succeededOrFailed(),
-      eq(
-    stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'],
+  condition: >
+    eq(
+      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
       'True'
-      )
     )
-    jobs:
-      - deployment: WebAppDeploy
-        environment: ${{ parameters.environment }}
-        strategy:
-          runOnce:
-            deploy:
-              steps:
-                - download: none
-                - task: DownloadPipelineArtifact@2
-                  displayName: "Download WebApp artifact"
-                  inputs:
-                    buildType: specific
-                    project: DBG-ACN
-                    definition: $(resources.pipeline.webapp-ci.pipelineID)
-                    buildVersionToDownload: latestFromBranch
-                    branchName: refs/heads/main
-                    artifactName: webapp-drop
-                    targetPath: $(Pipeline.Workspace)/webapp
 
-                - task: AzureWebApp@1
-                  displayName: "Deploy React app and API to Azure"
-                  condition: ne('${{ parameters.dryRun }}', 'true')
-                  inputs:
-                    azureSubscription: "Production Environment"
-                    appType: 'webApp'
-                    appName: 'DBG-Training'
-                    package: '$(Pipeline.Workspace)\webapp\s.zip'
+  jobs:
+    - deployment: DataPlatformDeploy
+
+      environment: ${{ parameters.environment }}
+
+      strategy:
+        runOnce:
+          deploy:
+
+            steps:
+              - download: none
+
+              - task: DownloadPipelineArtifact@2
+                displayName: Download DataPlatform Artifact
+
+                inputs:
+                  buildType: specific
+                  project: DBG-ACN
+                  definition: $(resources.pipeline.dataplatform-ci.pipelineID)
+                  buildVersionToDownload: latestFromBranch
+                  branchName: refs/heads/main
+                  artifactName: dataplatform-drop
+                  targetPath: $(Pipeline.Workspace)/DataPlatform
+
+              - task: AzureWebApp@1
+                displayName: Deploy Package to Staging101
+
+                condition: ne('${{ parameters.dryRun }}','true')
+
+                inputs:
+                  azureSubscription: Development Environment
+                  appType: webApp
+                  appName: Staging101
+                  package: '$(Pipeline.Workspace)\DataPlatform\s.zip'
+
+# -------------------------------------------------------------------
+# Stage 2 - AIML
+# -------------------------------------------------------------------
+
+- stage: DeployAIML
+  displayName: Deploy AIML Pipeline
+
+  dependsOn:
+    - ValidateConfig
+    - DeployDataPlatform
+
+  condition: >
+    eq(
+      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'],
+      'True'
+    )
+
+  jobs:
+    - deployment: AIMLDeploy
+
+      environment: ${{ parameters.environment }}
+
+      strategy:
+        runOnce:
+          deploy:
+
+            steps:
+              - download: none
+
+              - task: DownloadPipelineArtifact@2
+                displayName: Download AIML Artifact
+
+                inputs:
+                  buildType: specific
+                  project: DBG-ACN
+                  definition: $(resources.pipeline.aiml-ci.pipelineID)
+                  buildVersionToDownload: latestFromBranch
+                  branchName: refs/heads/main
+                  artifactName: aiml-drop
+                  targetPath: $(Pipeline.Workspace)/aiml
+
+              - task: AzureWebApp@1
+                displayName: Deploy Package to ORT-Environment
+
+                condition: ne('${{ parameters.dryRun }}','true')
+
+                inputs:
+                  azureSubscription: UAT/Test Environment
+                  appType: webApp
+                  appName: ORT-Environment
+                  package: '$(Pipeline.Workspace)\aiml\s.zip'
+
+# -------------------------------------------------------------------
+# Stage 3 - WebApp
+# -------------------------------------------------------------------
+
+- stage: DeployWebApp
+  displayName: Deploy WebApp (React + API)
+
+  dependsOn:
+    - ValidateConfig
+    - DeployDataPlatform
+    - DeployAIML
+
+  condition: >
+    eq(
+      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'],
+      'True'
+    )
+
+  jobs:
+    - deployment: WebAppDeploy
+
+      environment: ${{ parameters.environment }}
+
+      strategy:
+        runOnce:
+          deploy:
+
+            steps:
+              - download: none
+
+              - task: DownloadPipelineArtifact@2
+                displayName: Download WebApp Artifact
+
+                inputs:
+                  buildType: specific
+                  project: DBG-ACN
+                  definition: $(resources.pipeline.webapp-ci.pipelineID)
+                  buildVersionToDownload: latestFromBranch
+                  branchName: refs/heads/main
+                  artifactName: webapp-drop
+                  targetPath: $(Pipeline.Workspace)/webapp
+
+              - task: AzureWebApp@1
+                displayName: Deploy React App and API
+
+                condition: ne('${{ parameters.dryRun }}','true')
+
+                inputs:
+                  azureSubscription: Production Environment
+                  appType: webApp
+                  appName: DBG-Training
+                  package: '$(Pipeline.Workspace)\webapp\s.zip'
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HOW TO USE THIS FOR EACH RELEASE
