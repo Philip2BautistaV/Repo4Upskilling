@@ -153,11 +153,16 @@ stages:
                     artifactName: dataplatform-drop
                     targetPath: $(Pipeline.Workspace)/DataPlatform
 
-                - script: |
-                    echo "DataPlatform Deployment Validation"
-                    find $(Pipeline.Workspace)/DataPlatform/ -type f
-                  displayName: "List DataPlatform Files"
+                - powershell: |
+                    Write-Host "Pipeline Workspace:"
+                    Write-Host "$(Pipeline.Workspace)"
 
+                    Write-Host ""
+                    Write-Host "Downloaded Files:"
+                    Get-ChildItem "$(Pipeline.Workspace)\DataPlatform" -Recurse
+                    
+                  displayName: "List DataPlatform Files"
+                  
                 - task: ArchiveFiles@2
                   displayName: "Create Deployment Package"
                   inputs:
