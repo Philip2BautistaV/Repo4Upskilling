@@ -102,14 +102,15 @@ stages:
     dependsOn: ValidateConfig
     condition: succeeded()
 #      eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
-    jobs:
-      - deployment: DataPlatformDeploy
-        environment: ${{ parameters.environment }}
-        strategy:
-         runOnce:
-           deploy:
-           steps:
-           
+jobs:
+- deployment: DataPlatformDeploy
+  environment: ${{ parameters.environment }}
+
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+
         - download: none
 
         - task: DownloadPipelineArtifact@2
@@ -123,17 +124,20 @@ stages:
             artifactName: dataplatform-drop
             targetPath: $(Pipeline.Workspace)/dataplatform
 
-                - task: AzureCLI@2
-                  displayName: "Apply database schema and Fabric changes"
-                  condition: ne('${{ parameters.dryRun }}', 'true')
-                  inputs:
-                    azureSubscription: "Development Environment"
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    inlineScript: |
-                      echo "Deploying DataPlatform to ${{ parameters.environment }}"
-                      bash $(Pipeline.Workspace)/dataplatform/scripts/deploy.sh \
-                        --env ${{ parameters.environment }}
+        - script: |
+            echo "DataPlatform Deployment Validation"
+            find $(Pipeline.Workspace)/dataplatform -type f
+          displayName: "List DataPlatform Files"
+
+        - task: AzureCLI@2
+          displayName: "Apply database schema and Fabric changes"
+          condition: ne('${{ parameters.dryRun }}', 'true')
+          inputs:
+            azureSubscription: "Development Environment"
+            scriptType: bash
+            scriptLocation: inlineScript
+            inlineScript: |
+              echo "Deploying DataPlatform to ${{ parameters.environment }}"    
 
   # Stage 2: AIML — ML pipeline deployment.
   # Skipped when aiml.enabled = false.
