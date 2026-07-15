@@ -151,11 +151,11 @@ stages:
                     buildVersionToDownload: latestFromBranch
                     branchName: refs/heads/main
                     artifactName: dataplatform-drop
-                    targetPath: $(Pipeline.Workspace)/dataplatform
+                    targetPath: $(System.DefaultWorkingDirectory)/DataPlatform/
 
                 - script: |
                     echo "DataPlatform Deployment Validation"
-                    find $(Pipeline.Workspace)/dataplatform -type f
+                    find $(System.DefaultWorkingDirectory)/DataPlatform/ -type f
                   displayName: "List DataPlatform Files"
 
                 - task: AzureCLI@2
