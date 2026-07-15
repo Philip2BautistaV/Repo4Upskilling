@@ -114,7 +114,7 @@ stages:
                   inputs:
                     buildType: specific
                     project: DBG-ACN
-                    definition: $(resources.pipeline.dataplatform-ci.pipelineID)
+                    definition: 43
                     buildVersionToDownload: latestFromBranch
                     branchName: refs/heads/main
                     artifactName: dataplatform-drop
@@ -158,7 +158,7 @@ stages:
                   inputs:
                     buildType: specific
                     project: DBG-ACN
-                    definition: $(resources.pipeline.aiml-ci.pipelineID)
+                    definition: 44
                     buildVersionToDownload: latestFromBranch
                     branchName: refs/heads/main
                     artifactName: aiml-drop
@@ -203,7 +203,7 @@ stages:
                   inputs:
                     buildType: specific
                     project: DBG-ACN
-                    definition: $(resources.pipeline.webapp-ci.pipelineID)
+                    definition: 42
                     buildVersionToDownload: latestFromBranch
                     branchName: refs/heads/main
                     artifactName: webapp-drop
