@@ -177,21 +177,26 @@ stages:
                     
                   displayName: "List DataPlatform Files"
                   
-                - task: ArchiveFiles@2
-                  displayName: "Create Deployment Package"
-                  inputs:
-                    rootFolderOrFile: '$(Pipeline.Workspace)/DataPlatform'
-                    includeRootFolder: false
-                    archiveType: zip
-                    archiveFile: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
-                    replaceExistingArchive: true
+#                - task: ArchiveFiles@2
+#                  displayName: "Create Deployment Package"
+#                  inputs:
+#                    rootFolderOrFile: '$(Pipeline.Workspace)/DataPlatform'
+#                    includeRootFolder: false
+#                    archiveType: zip
+#                   archiveFile: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
+#                   replaceExistingArchive: true
                     
                 - powershell: |
-                    Write-Host "Inspecting downloaded artifact..."
-                    
-                    Get-ChildItem "$(Pipeline.Workspace)\DataPlatform" -Recurse
+                    Write-Host "Verifying deployment package"
+                    Expand-Archive 
+                      "$(Pipeline.Workspace)\DataPlatform\s.zip" `
+                      "$(Pipeline.Workspace)\Verify"
+                      -Force
 
-                  displayName: "Inspect Downloaded Artifact"
+                    Get-ChildItem `
+                      "$(Pipeline.Workspace)\Verify" `
+                      -Recurse
+                  displayName: "Verify App Package"
         
                 - task: AzureWebApp@1
                   displayName: "Deploy Package to Staging101"
@@ -200,7 +205,7 @@ stages:
                     azureSubscription: "Development Environment"
                     appType: 'webApp'
                     appName: 'Staging101'
-                    package: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
+                    package: '$(Build.ArtifactStagingDirectory)\DataPlatform\s.zip'
 
   # Stage 2: AIML — ML pipeline deployment.
   # Skipped when aiml.enabled = false.
