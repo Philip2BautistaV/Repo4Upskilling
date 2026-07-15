@@ -178,10 +178,10 @@ stages:
                       "$(Build.ArtifactStagingDirectory)\DataPlatform.zip" `
                       "$(Build.ArtifactStagingDirectory)\Inspect"
 
-                   Get-ChildItem `
+                    Get-ChildItem `
                       "$(Build.ArtifactStagingDirectory)\Inspect" `
                       -Recurse
-                   displayName: "Inspect ZIP Package"
+                    displayName: "Inspect ZIP Package"
         
                 - task: AzureWebApp@1
                   displayName: "Deploy Package to Staging101"
