@@ -1,74 +1,3 @@
-
-Cloud
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Release coordinator · YML
 # release-coordinator.yml
 #
 # Trigger: Manual only. Release coordinators should not auto-trigger.
@@ -105,9 +34,9 @@ Release coordinator · YML
 # this file in a YAML-aware editor (VS Code with the Azure Pipelines extension,
 # which lints indentation live) before pasting into ADO would likely save you
 # another round of this.
- 
+
 trigger: none
- 
+
 parameters:
   - name: environment
     displayName: "Target Environment"
@@ -117,12 +46,12 @@ parameters:
       - staging
       - uat
       - production
- 
+
   - name: dryRun
     displayName: "Dry Run (validate only, no actual deployment)"
     type: boolean
     default: true
- 
+
 # All component CI pipelines are declared so their artifacts are accessible.
 # release-config.yml is read directly from this pipeline's own repo (checkout: self)
 # rather than as a separate resources.repositories entry.
@@ -132,22 +61,22 @@ resources:
       project: DBG-ACN
       source: "WebApp-CI"
       branch: main
- 
+
     - pipeline: dataplatform-ci
       project: DBG-ACN
       source: "DataPlatform-CI"
       branch: main
- 
+
     - pipeline: aiml-ci
       project: DBG-ACN
       source: "AIML-CI"
       branch: main
- 
+
 pool:
   vmImage: "ubuntu-latest"
- 
+
 stages:
- 
+
   # Stage 0: Read release-config.yml and output which components are enabled.
   # All subsequent stages depend on the output variables set here.
   - stage: ValidateConfig
@@ -157,7 +86,7 @@ stages:
         steps:
           - checkout: self
             path: coordinator
- 
+
           - task: PowerShell@2
             displayName: "Parse release-config.yml and set component flags"
             inputs:
@@ -168,26 +97,26 @@ stages:
                   Install-Module powershell-yaml -Force -Scope CurrentUser
                 }
                 Import-Module powershell-yaml
- 
+
                 $config = Get-Content "$(Pipeline.Workspace)/coordinator/release-config.yml" | ConvertFrom-Yaml
                 $release = $config.release
- 
+
                 Write-Host "Release: $($release.name)"
                 Write-Host "Target environment: ${{ parameters.environment }}"
                 Write-Host ""
- 
+
                 $dp  = $config.components.dataplatform.enabled
                 $ai  = $config.components.aiml.enabled
                 $web = $config.components.webapp.enabled
- 
+
                 Write-Host "DP = $dp"
                 Write-Host "AI = $ai"
                 Write-Host "WEB = $web"
- 
+
                 Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($dp.ToString())"
                 Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
                 Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
- 
+
                 Write-Host "Components in scope:"
                 if ($dp)  { Write-Host "  [1] DataPlatform" }
                 if ($ai)  { Write-Host "  [2] AIML (deploys after DataPlatform)" }
@@ -197,7 +126,7 @@ stages:
                   exit 1
                 }
             name: configOutput
- 
+
   # Stage 1: DataPlatform — schema changes, Fabric deployment.
   # Skipped automatically when dataplatform.enabled = false.
   - stage: DeployDataPlatform
@@ -223,12 +152,12 @@ stages:
                     branchName: refs/heads/main
                     artifactName: dataplatform-drop
                     targetPath: $(Pipeline.Workspace)/dataplatform
- 
+
                 - script: |
                     echo "DataPlatform Deployment Validation"
                     find $(Pipeline.Workspace)/dataplatform -type f
                   displayName: "List DataPlatform Files"
- 
+
                 - task: AzureCLI@2
                   displayName: "Apply database schema and Fabric changes"
                   condition: ne('${{ parameters.dryRun }}', 'true')
@@ -238,7 +167,7 @@ stages:
                     scriptLocation: inlineScript
                     inlineScript: |
                       echo "Deploying DataPlatform to ${{ parameters.environment }}"
- 
+
   # Stage 2: AIML — ML pipeline deployment.
   # Skipped when aiml.enabled = false.
   # If DataPlatform was in scope but failed, this stage will not run.
@@ -271,7 +200,7 @@ stages:
                     branchName: refs/heads/main
                     artifactName: aiml-drop
                     targetPath: $(Pipeline.Workspace)/aiml
- 
+
                 - task: AzureCLI@2
                   displayName: "Deploy AIML scoring pipeline"
                   condition: ne('${{ parameters.dryRun }}', 'true')
@@ -283,7 +212,7 @@ stages:
                       echo "Deploying AIML to ${{ parameters.environment }}"
                       bash $(Pipeline.Workspace)/aiml/scripts/deploy.sh \
                         --env ${{ parameters.environment }}
- 
+
   # Stage 3: WebApp — React frontend and Web APIs. Always the last component deployed.
   # Waits for both DataPlatform and AIML to complete or be skipped before proceeding.
   # If either of those stages failed (not skipped), WebApp deployment is blocked.
@@ -317,7 +246,7 @@ stages:
                     branchName: refs/heads/main
                     artifactName: webapp-drop
                     targetPath: $(Pipeline.Workspace)/webapp
- 
+
                 - task: AzureCLI@2
                   displayName: "Deploy React app and API to Azure"
                   condition: ne('${{ parameters.dryRun }}', 'true')
@@ -330,7 +259,7 @@ stages:
                       az staticwebapp deploy \
                         --app-location "$(Pipeline.Workspace)/webapp/dist" \
                         --deployment-token $(AZURE_STATIC_WEB_APP_TOKEN)
- 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # HOW TO USE THIS FOR EACH RELEASE
 # ─────────────────────────────────────────────────────────────────────────────
@@ -376,7 +305,3 @@ stages:
 # 4. For the dryRun parameter, all AzureCLI tasks are conditioned to skip when
 #    dryRun is true. This lets the release manager validate the pipeline plan
 #    before committing to an actual deployment.
- 
-
-
-
