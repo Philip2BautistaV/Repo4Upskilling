@@ -213,12 +213,12 @@ stages:
       - ValidateConfig
       - DeployDataPlatform
       - DeployAIML
-    condition: >
-      and(
-        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
-        in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped'),
-        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'], 'True')
-      )
+    condition: succeeded()
+#      and(
+#        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
+#        in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped'),
+#        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'], 'True')
+#      )
     jobs:
       - deployment: WebAppDeploy
         environment: ${{ parameters.environment }}
@@ -232,24 +232,20 @@ stages:
                   inputs:
                     buildType: specific
                     project: DBG-ACN
-                    definition: 42
+                    definition: $(resources.pipeline.webapp-ci.pipelineID)
                     buildVersionToDownload: latestFromBranch
                     branchName: refs/heads/main
                     artifactName: webapp-drop
                     targetPath: $(Pipeline.Workspace)/webapp
 
-                - task: AzureCLI@2
+                - task: AzureWebApp@1
                   displayName: "Deploy React app and API to Azure"
                   condition: ne('${{ parameters.dryRun }}', 'true')
                   inputs:
                     azureSubscription: "Production Environment"
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    inlineScript: |
-                      echo "Deploying WebApp to ${{ parameters.environment }}"
-                      az staticwebapp deploy \
-                        --app-location "$(Pipeline.Workspace)/webapp/dist" \
-                        --deployment-token $(AZURE_STATIC_WEB_APP_TOKEN)
+                    appType: 'webApp'
+                    appName: 'DBG-Training'
+                    package: '$(Pipeline.Workspace)\webapp\s.zip'
 
 # ─────────────────────────────────────────────────────────────────────────────
 # HOW TO USE THIS FOR EACH RELEASE
