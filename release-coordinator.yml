@@ -137,11 +137,11 @@ stages:
         AI: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'] ]
         WEB: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'] ]
 
-    steps:
-    - powershell: |
-        Write-Host "DP=$(DP)"
-        Write-Host "AI=$(AI)"
-        Write-Host "WEB=$(WEB)"
+      steps:
+    -   powershell: |
+          Write-Host "DP=$(DP)"
+          Write-Host "AI=$(AI)"
+          Write-Host "WEB=$(WEB)"
 
   # Stage 1: DataPlatform — schema changes, Fabric deployment.
   # Skipped automatically when dataplatform.enabled = false.
