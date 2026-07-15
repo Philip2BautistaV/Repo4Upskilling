@@ -171,6 +171,17 @@ stages:
                     archiveType: zip
                     archiveFile: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
                     replaceExistingArchive: true
+                - powershell: |
+                    Write-Host "Contents of deployment package"
+
+                    Expand-Archive `
+                      "$(Build.ArtifactStagingDirectory)\DataPlatform.zip" `
+                      "$(Build.ArtifactStagingDirectory)\Inspect"
+
+                   Get-ChildItem `
+                      "$(Build.ArtifactStagingDirectory)\Inspect" `
+                      -Recurse
+                   displayName: "Inspect ZIP Package"
         
                 - task: AzureWebApp@1
                   displayName: "Deploy Package to Staging101"
