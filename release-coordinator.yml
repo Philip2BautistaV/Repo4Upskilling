@@ -102,32 +102,32 @@ stages:
     dependsOn: ValidateConfig
     condition: succeeded()
 #      eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
-jobs:
-- deployment: DataPlatformDeploy
-  environment: ${{ parameters.environment }}
+     jobs:
+     - deployment: DataPlatformDeploy
+       environment: ${{ parameters.environment }}
+       
+       strategy:
+         runOnce:
+          deploy:
+           steps:
 
-  strategy:
-    runOnce:
-      deploy:
-        steps:
+           - download: none
 
-        - download: none
+           - task: DownloadPipelineArtifact@2
+             displayName: "Download DataPlatform artifact"
+             inputs:
+               buildType: specific
+               project: DBG-ACN
+               definition: $(resources.pipeline.dataplatform-ci.pipelineID)
+               buildVersionToDownload: latestFromBranch
+               branchName: refs/heads/main
+               artifactName: dataplatform-drop
+               targetPath: $(Pipeline.Workspace)/dataplatform
 
-        - task: DownloadPipelineArtifact@2
-          displayName: "Download DataPlatform artifact"
-          inputs:
-            buildType: specific
-            project: DBG-ACN
-            definition: $(resources.pipeline.dataplatform-ci.pipelineID)
-            buildVersionToDownload: latestFromBranch
-            branchName: refs/heads/main
-            artifactName: dataplatform-drop
-            targetPath: $(Pipeline.Workspace)/dataplatform
-
-        - script: |
-            echo "DataPlatform Deployment Validation"
-            find $(Pipeline.Workspace)/dataplatform -type f
-          displayName: "List DataPlatform Files"
+          - script: |
+               echo "DataPlatform Deployment Validation"
+               find $(Pipeline.Workspace)/dataplatform -type f
+            displayName: "List DataPlatform Files"
 
         - task: AzureCLI@2
           displayName: "Apply database schema and Fabric changes"
@@ -137,7 +137,7 @@ jobs:
             scriptType: bash
             scriptLocation: inlineScript
             inlineScript: |
-              echo "Deploying DataPlatform to ${{ parameters.environment }}"    
+              echo "Deploying DataPlatform to ${{ parameters.environment }}" 
 
   # Stage 2: AIML — ML pipeline deployment.
   # Skipped when aiml.enabled = false.
