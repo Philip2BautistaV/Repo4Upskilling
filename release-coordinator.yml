@@ -4,10 +4,10 @@ release:
 
 components:
   dataplatform:
-    enabled: false
+    enabled: true
 
   aiml:
-    enabled: false
+    enabled: true
 
   webapp:
     enabled: true
