@@ -132,8 +132,8 @@ stages:
   - stage: DeployDataPlatform
     displayName: "Deploy DataPlatform"
     dependsOn: ValidateConfig
-    condition: >
-      eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
+    condition: succeeded()
+#      eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
     jobs:
       - deployment: DataPlatformDeploy
         environment: ${{ parameters.environment }}
