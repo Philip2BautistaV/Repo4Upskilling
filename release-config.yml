@@ -17,7 +17,7 @@ components:
     artifactName: "dataplatform-drop"
 
   aiml:
-    enabled: true                    # Set to true when ML pipeline changes are in scope
+    enabled: false                    # Set to true when ML pipeline changes are in scope
     pipelineName: "AIML-CI"
     branch: "refs/heads/main"
     artifactName: "aiml-drop"
