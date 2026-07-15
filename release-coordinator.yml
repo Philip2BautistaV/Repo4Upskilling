@@ -50,7 +50,7 @@ parameters:
   - name: dryRun
     displayName: "Dry Run (validate only, no actual deployment)"
     type: boolean
-    default: true
+    default: false
 
 # All component CI pipelines are declared so their artifacts are accessible.
 # release-config.yml is read directly from this pipeline's own repo (checkout: self)
