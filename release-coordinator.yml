@@ -158,15 +158,23 @@ stages:
                     find $(Pipeline.Workspace)/DataPlatform/ -type f
                   displayName: "List DataPlatform Files"
 
-                - task: AzureCLI@2
-                  displayName: "Apply database schema and Fabric changes"
+                - task: ArchiveFiles@2
+                  displayName: "Create Deployment Package"
+                  inputs:
+                    rootFolderOrFile: '$(Pipeline.Workspace)/DataPlatform'
+                    includeRootFolder: false
+                    archiveType: zip
+                    archiveFile: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
+                    replaceExistingArchive: true
+        
+                - task: AzureWebApp@1
+                  displayName: "Deploy Package to Staging101"
                   condition: ne('${{ parameters.dryRun }}', 'true')
                   inputs:
                     azureSubscription: "Development Environment"
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    inlineScript: |
-                      echo "Deploying DataPlatform to ${{ parameters.environment }}"
+                    appType: 'webApp'
+                    appName: 'Staging101'
+                    package: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
 
   # Stage 2: AIML — ML pipeline deployment.
   # Skipped when aiml.enabled = false.
