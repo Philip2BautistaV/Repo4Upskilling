@@ -199,7 +199,7 @@ stages:
                   displayName: "Deploy Package to ORT-Environment"
                   condition: ne('${{ parameters.dryRun }}', 'true')
                   inputs:
-                    azureSubscription: "UAT/Test Environmentt"
+                    azureSubscription: "UAT/Test Environment"
                     appType: 'webApp'
                     appName: 'ORT-Environment'
                     package: '$(Pipeline.Workspace)\aiml\s.zip'
