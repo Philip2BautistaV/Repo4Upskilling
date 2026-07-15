@@ -188,7 +188,7 @@ stages:
                   azureSubscription: Development Environment
                   appType: webApp
                   appName: Staging101
-                  package: '$(Pipeline.Workspace)\DataPlatform\TESTs.zip'
+                  package: '$(Pipeline.Workspace)\DataPlatform\s.zip'
 
 # -------------------------------------------------------------------
 # Stage 2 - AIML
