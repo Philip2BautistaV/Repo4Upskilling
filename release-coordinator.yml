@@ -133,7 +133,7 @@ stages:
     displayName: "Deploy DataPlatform"
     dependsOn: ValidateConfig
     condition: >
-      eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
+      eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'true')
     jobs:
       - deployment: DataPlatformDeploy
         environment: ${{ parameters.environment }}
@@ -174,7 +174,7 @@ stages:
     condition: >
       and(
         in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
-        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'], 'True')
+        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'], 'true')
       )
     jobs:
       - deployment: AIMLDeploy
@@ -217,7 +217,7 @@ stages:
       and(
         in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
         in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped'),
-        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'], 'True')
+        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'], 'true')
       )
     jobs:
       - deployment: WebAppDeploy
