@@ -141,8 +141,7 @@ stages:
     dependsOn:
       - ValidateConfig
       - DeployDataPlatform
-    condition: >
-       in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped')  
+    condition: succeeded()
 #      and(
 #        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
 #        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'], 'True')
@@ -186,8 +185,7 @@ stages:
       - ValidateConfig
       - DeployDataPlatform
       - DeployAIML
-    condition: >
-       and(3    in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),4    in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped')5  )
+    condition: succeeded()
 #      and(
 #        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
 #        in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped'),
