@@ -188,13 +188,20 @@ stages:
                     
                 - powershell: |
                     Write-Host "Verifying deployment package"
-                    Expand-Archive 
-                      "$(Pipeline.Workspace)\DataPlatform\s.zip" `
-                      "$(Pipeline.Workspace)\Verify"
-                      -Force
+    
+                      $zipPath = "$(Pipeline.Workspace)\DataPlatform\s.zip" `
+                      $extractPath = "$(Pipeline.Workspace)\Verify"
 
+                      Write-Host "ZIP: $zipPath"
+                      Write-Host "Extract To: $extractPath"
+
+                    Expand-Archive `
+                      -Path $zipPath `
+                      -DestinationPath $extractPath `
+                      -Force
+                      
                     Get-ChildItem `
-                      "$(Pipeline.Workspace)\Verify" `
+                      -Path $extractPath `
                       -Recurse
                   displayName: "Verify App Package"
         
@@ -205,7 +212,7 @@ stages:
                     azureSubscription: "Development Environment"
                     appType: 'webApp'
                     appName: 'Staging101'
-                    package: '$(Build.ArtifactStagingDirectory)\DataPlatform\s.zip'
+                    package: '$(Pipeline.Workspace)\DataPlatform\s.zip'
 
   # Stage 2: AIML — ML pipeline deployment.
   # Skipped when aiml.enabled = false.
