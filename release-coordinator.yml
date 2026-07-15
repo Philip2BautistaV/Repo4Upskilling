@@ -151,7 +151,8 @@ stages:
                     buildVersionToDownload: latestFromBranch
                     branchName: refs/heads/main
                     artifactName: dataplatform-drop
-                    targetPath: $(Pipeline.Workspace)/DataPlatform/
+                    targetPath: $(Build.ArtifactStagingDirectory)
+#                    targetPath: $(Pipeline.Workspace)/DataPlatform/
 
                 - script: |
                     echo "DataPlatform Deployment Validation"
