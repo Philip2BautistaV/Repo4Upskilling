@@ -235,11 +235,10 @@ stages:
     condition: and(
       succeededOrFailed(),
       eq(
-      
     stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'],
-    'True'
-        )
-       )
+      'True'
+      )
+    )
     jobs:
       - deployment: WebAppDeploy
         environment: ${{ parameters.environment }}
