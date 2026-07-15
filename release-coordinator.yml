@@ -152,59 +152,7 @@ stages:
                     branchName: refs/heads/main
                     artifactName: dataplatform-drop
                     targetPath: $(Pipeline.Workspace)/DataPlatform
-
-                - powershell: |
-                    Write-Host "Inspecting s.zip"
-
-                    Expand-Archive `
-                      "$(Pipeline.Workspace)\DataPlatform\s.zip" `
-                      "$(Pipeline.Workspace)\Expanded" `
-                      -Force
-
-                    Get-ChildItem `
-                      "$(Pipeline.Workspace)\Expanded" `
-                      -Recurse
-
-                  displayName: "Inspect s.zip Contents"
-
-                - powershell: |
-                    Write-Host "Pipeline Workspace:"
-                    Write-Host "$(Pipeline.Workspace)"
-
-                    Write-Host ""
-                    Write-Host "Downloaded Files:"
-                    Get-ChildItem "$(Pipeline.Workspace)\DataPlatform" -Recurse
-                    
-                  displayName: "List DataPlatform Files"
                   
-#                - task: ArchiveFiles@2
-#                  displayName: "Create Deployment Package"
-#                  inputs:
-#                    rootFolderOrFile: '$(Pipeline.Workspace)/DataPlatform'
-#                    includeRootFolder: false
-#                    archiveType: zip
-#                   archiveFile: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
-#                   replaceExistingArchive: true
-                    
-                - powershell: |
-                    Write-Host "Verifying deployment package"
-    
-                      $zipPath = "$(Pipeline.Workspace)\DataPlatform\s.zip" `
-                      $extractPath = "$(Pipeline.Workspace)\Verify"
-
-                      Write-Host "ZIP: $zipPath"
-                      Write-Host "Extract To: $extractPath"
-
-                    Expand-Archive `
-                      -Path $zipPath `
-                      -DestinationPath $extractPath `
-                      -Force
-                      
-                    Get-ChildItem `
-                      -Path $extractPath `
-                      -Recurse
-                  displayName: "Verify App Package"
-        
                 - task: AzureWebApp@1
                   displayName: "Deploy Package to Staging101"
                   condition: ne('${{ parameters.dryRun }}', 'true')
@@ -241,23 +189,20 @@ stages:
                   inputs:
                     buildType: specific
                     project: DBG-ACN
-                    definition: 44
+                    definition: $(resources.pipeline.dataplatform-ci.pipelineID)
                     buildVersionToDownload: latestFromBranch
                     branchName: refs/heads/main
                     artifactName: aiml-drop
                     targetPath: $(Pipeline.Workspace)/aiml
 
-                - task: AzureCLI@2
-                  displayName: "Deploy AIML scoring pipeline"
+                - task: AzureWebApp@1
+                  displayName: "Deploy Package to ORT-Environment"
                   condition: ne('${{ parameters.dryRun }}', 'true')
                   inputs:
-                    azureSubscription: "UAT/Test Environment"
-                    scriptType: bash
-                    scriptLocation: inlineScript
-                    inlineScript: |
-                      echo "Deploying AIML to ${{ parameters.environment }}"
-                      bash $(Pipeline.Workspace)/aiml/scripts/deploy.sh \
-                        --env ${{ parameters.environment }}
+                    azureSubscription: "UAT/Test Environmentt"
+                    appType: 'webApp'
+                    appName: 'ORT-Environment'
+                    package: '$(Pipeline.Workspace)\aiml\s.zip'
 
   # Stage 3: WebApp — React frontend and Web APIs. Always the last component deployed.
   # Waits for both DataPlatform and AIML to complete or be skipped before proceeding.
