@@ -106,19 +106,22 @@ stages:
       - deployment: DataPlatformDeploy
         environment: ${{ parameters.environment }}
         strategy:
-          runOnce:
-            deploy:
-              steps:
-                - task: DownloadPipelineArtifact@2
-                  displayName: "Download DataPlatform artifact"
-                  inputs:
-                    buildType: specific
-                    project: DBG-ACN
-                    definition: 43
-                    buildVersionToDownload: latestFromBranch
-                    branchName: refs/heads/main
-                    artifactName: dataplatform-drop
-                    targetPath: $(Pipeline.Workspace)/dataplatform
+         runOnce:
+           deploy:
+           steps:
+           
+        - download: none
+
+        - task: DownloadPipelineArtifact@2
+          displayName: "Download DataPlatform artifact"
+          inputs:
+            buildType: specific
+            project: DBG-ACN
+            definition: $(resources.pipeline.dataplatform-ci.pipelineID)
+            buildVersionToDownload: latestFromBranch
+            branchName: refs/heads/main
+            artifactName: dataplatform-drop
+            targetPath: $(Pipeline.Workspace)/dataplatform
 
                 - task: AzureCLI@2
                   displayName: "Apply database schema and Fabric changes"
