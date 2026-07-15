@@ -171,11 +171,11 @@ stages:
     dependsOn:
       - ValidateConfig
       - DeployDataPlatform
-    condition: >
-      and(
-        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
-        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'], 'True')
-      )
+    condition: succeeded()
+#      and(
+#        in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'),
+#        eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'], 'True')
+#      )
     jobs:
       - deployment: AIMLDeploy
         environment: ${{ parameters.environment }}
