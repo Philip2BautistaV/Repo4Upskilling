@@ -172,16 +172,11 @@ stages:
                     archiveFile: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
                     replaceExistingArchive: true
                 - powershell: |
-                    Write-Host "Contents of deployment package"
+                    Write-Host "Inspecting downloaded artifact..."
+                    
+                    Get-ChildItem "$(Pipeline.Workspace)\DataPlatform" -Recurse
 
-                    Expand-Archive `
-                      "$(Build.ArtifactStagingDirectory)\DataPlatform.zip" `
-                      "$(Build.ArtifactStagingDirectory)\Inspect"
-
-                    Get-ChildItem `
-                      "$(Build.ArtifactStagingDirectory)\Inspect" `
-                      -Recurse
-                    displayName: "Inspect ZIP Package"
+                  displayName: "Inspect Downloaded Artifact"
         
                 - task: AzureWebApp@1
                   displayName: "Deploy Package to Staging101"
