@@ -189,7 +189,7 @@ stages:
                   inputs:
                     buildType: specific
                     project: DBG-ACN
-                    definition: $(resources.pipeline.dataplatform-ci.pipelineID)
+                    definition: $(resources.pipeline.aiml-ci.pipelineID)
                     buildVersionToDownload: latestFromBranch
                     branchName: refs/heads/main
                     artifactName: aiml-drop
