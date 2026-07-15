@@ -16,10 +16,10 @@ parameters:
       - uat
       - production
 
-#  - name: dryRun
-#    displayName: "Dry Run (validate only, no actual deployment)"
-#    type: boolean
-#    default: false
+  - name: dryRun
+    displayName: "Dry Run (validate only, no actual deployment)"
+    type: boolean
+    default: true
 
 # Declare the coordinator repo so we can read release-config.yml from it.
 # All component CI pipelines are also declared so their artifacts are accessible.
