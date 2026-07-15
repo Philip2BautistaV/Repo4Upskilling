@@ -1,1 +1,13 @@
+release:
+  name: "Release 1.0"
+  targetEnvironment: "staging"
 
+components:
+  dataplatform:
+    enabled: false
+
+  aiml:
+    enabled: false
+
+  webapp:
+    enabled: true
