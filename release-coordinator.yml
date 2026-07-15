@@ -174,7 +174,7 @@ stages:
                     azureSubscription: "Development Environment"
                     appType: 'webApp'
                     appName: 'Staging101'
-                    package: '$(Build.ArtifactStagingDirectory)/DataPlatform.zip'
+                    package: '$(Build.ArtifactStagingDirectory)/dataplatform-drop/s.zip'
 
   # Stage 2: AIML — ML pipeline deployment.
   # Skipped when aiml.enabled = false.
