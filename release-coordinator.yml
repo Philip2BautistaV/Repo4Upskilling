@@ -112,7 +112,7 @@ stages:
               Write-Host "AI=$ai"
               Write-Host "WEB=$web"
 
-              Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($dp.ToString())"
+              Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($dp.ToString().ToLower())"
               Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
               Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
 
@@ -152,8 +152,8 @@ stages:
   condition: >
    and(
     succeeded(),
-    eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
-    'true'
+    eq(lower(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
+    'true')
    )
     )
   jobs:
