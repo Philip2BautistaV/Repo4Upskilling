@@ -4,22 +4,32 @@
 # Reads release-config.yml to determine scope, downloads artifacts in order,
 # deploys each component with conditional gates.
 #
-# CHANGES MADE IN THIS PASS (vs. the version you pasted):
-#   1. Fixed broken indentation in the DeployDataPlatform stage again (the
-#      `jobs:` key and everything under it had drifted to inconsistent
-#      indentation levels — would fail to parse or silently mis-nest steps).
-#   2. Restored the eq(...) conditions on all three deploy stages again — they
-#      had reverted to condition: succeeded() (commented-out gating), which
-#      bypasses release-config.yml entirely.
-#   3. Added your new "List DataPlatform Files" diagnostic step, correctly
-#      nested inside steps:, between the artifact download and the deploy task.
+# CHANGES MADE IN THIS PASS:
+#   1. Fixed Stage 1 (DeployDataPlatform) condition: it referenced the
+#      `stageDependencies` context, which is only valid inside a JOB-level
+#      variable expression ($[ ... ]) — not inside a STAGE-level `condition:`.
+#      In a stage condition, `stageDependencies` resolves to nothing, so
+#      `eq(<empty>, 'True')` silently evaluated to false and the stage was
+#      skipped on every run, regardless of the dataplatform.enabled flag in
+#      release-config.yml. Switched to the `dependencies` context, which is
+#      the correct one for stage-level conditions, and folded the job name
+#      into the outputs key as required by that context's syntax:
+#        dependencies.<StageName>.outputs['<JobName>.<StepName>.<VarName>']
+#   2. Applied the same `dependencies` context fix to the commented-out
+#      eq(...) conditions on Stage 2 (AIML) and Stage 3 (WebApp), so they're
+#      correct whenever you're ready to uncomment them. They are left
+#      commented out / condition: succeeded() for now, since you didn't ask
+#      to gate those yet — only the syntax was corrected.
+#   3. Left the job-level `stageDependencies` usage in the DebugVariables
+#      stage untouched — that one's correct as-is, since it's a job variable
+#      expression, not a stage condition.
 #
 # FLAGGED, NOT CHANGED:
-#   - The DataPlatform AzureCLI@2 step's inlineScript now only echoes a message
-#     — the `bash .../dataplatform/scripts/deploy.sh --env ...` call from your
-#     earlier version is gone. Left as-is in case that's deliberate while you're
-#     testing the download/listing steps. Say the word if you want deploy.sh
-#     added back in.
+#   - The DataPlatform AzureCLI@2 step's inlineScript still only echoes a
+#     message — the `bash .../dataplatform/scripts/deploy.sh --env ...` call
+#     from your earlier version is gone. Left as-is in case that's
+#     deliberate while you're testing the download/listing steps. Say the
+#     word if you want deploy.sh added back in.
 #   - Stage 2 (AIML) and Stage 3 (WebApp) still use hardcoded
 #     `definition: 44` / `definition: 42` instead of the dynamic
 #     $(resources.pipeline.<alias>.pipelineID) pattern Stage 1 uses.
@@ -28,12 +38,9 @@
 #     Environment") independent of the ${{ parameters.environment }} value
 #     chosen at queue time.
 #
-# The indentation and condition bugs have now reappeared twice in a row —
-# that usually means edits are happening in something that doesn't preserve
-# YAML indentation reliably (e.g. pasting through a plain web textbox). Editing
-# this file in a YAML-aware editor (VS Code with the Azure Pipelines extension,
-# which lints indentation live) before pasting into ADO would likely save you
-# another round of this.
+# Editing this file in a YAML-aware editor (VS Code with the Azure Pipelines
+# extension, which lints indentation live) before pasting into ADO will help
+# avoid indentation drift on future edits.
 
 trigger: none
 
@@ -148,9 +155,8 @@ stages:
   dependsOn:
     - ValidateConfig
 
-  #condition: succeeded()
-  condition: and(succeeded(), eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True'))
-  
+  condition: and(succeeded(), eq(dependencies.ValidateConfig.outputs['ReadConfig.configOutput.dp_enabled'], 'True'))
+
   jobs:
     - deployment: DataPlatformDeploy
 
@@ -199,9 +205,12 @@ stages:
 
   condition: succeeded()
   #condition: >
-  #  eq(
-  #    stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_enabled'],
-  #    'True'
+  #  and(
+  #    succeeded(),
+  #    eq(
+  #      dependencies.ValidateConfig.outputs['ReadConfig.configOutput.ai_enabled'],
+  #      'True'
+  #    )
   #  )
 
   jobs:
@@ -251,11 +260,14 @@ stages:
     - DeployDataPlatform
     - DeployAIML
 
-  condition: succeeded()   
+  condition: succeeded()
   #condition: >
-  #  eq(
-  #    stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'],
-  #    'True'
+  #  and(
+  #    succeeded(),
+  #    eq(
+  #      dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_enabled'],
+  #      'True'
+  #    )
   #  )
 
   jobs:
@@ -338,3 +350,9 @@ stages:
 # 4. For the dryRun parameter, all AzureCLI tasks are conditioned to skip when
 #    dryRun is true. This lets the release manager validate the pipeline plan
 #    before committing to an actual deployment.
+#
+# 5. Stage 2 and Stage 3's real gating conditions are currently commented out
+#    (both stages run unconditionally via `condition: succeeded()`). Their
+#    commented eq(...) blocks now use the correct `dependencies` context —
+#    uncomment and replace `condition: succeeded()` with the block above when
+#    you're ready to gate AIML/WebApp the same way DataPlatform is gated.
