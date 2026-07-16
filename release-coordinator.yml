@@ -148,7 +148,7 @@ stages:
   dependsOn:
     - ValidateConfig
 
-  condition: succeeded()
+  #condition: succeeded()
   condition: >
     eq(
       $(DP),
