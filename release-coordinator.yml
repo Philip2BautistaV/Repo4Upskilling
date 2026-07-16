@@ -134,7 +134,7 @@ stages:
 
       steps:
         - powershell: |
-            Write-Host "DP=$(DP)"
+            Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]True"
             Write-Host "AI=$(AI)"
             Write-Host "WEB=$(WEB)"
 
@@ -150,11 +150,10 @@ stages:
 
   #condition: succeeded()
   condition: >
-    eq(
-      $(DP),
-      'True'
-    )
-
+   eq(
+    stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
+    'True'
+   )
   jobs:
     - deployment: DataPlatformDeploy
 
