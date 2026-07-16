@@ -24,7 +24,7 @@ components:
     note: "AIML always deploys after DataPlatform when both are enabled"
 
   webapp:
-    enabled: false                     # WebApp is in scope for Release 1
+    enabled: true                     # WebApp is in scope for Release 1
     pipelineName: "WebApp-CI"
     branch: "refs/heads/main"
     artifactName: "webapp-drop"
