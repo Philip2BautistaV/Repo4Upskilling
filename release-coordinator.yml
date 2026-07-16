@@ -152,8 +152,9 @@ stages:
   condition: >
    and(
     succeeded(),
-    eq(lower(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
-    'true')
+    eq(
+  lower(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
+      'true')
    )
     )
   jobs:
