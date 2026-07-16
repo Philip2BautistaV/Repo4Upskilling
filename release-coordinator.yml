@@ -241,7 +241,7 @@ stages:
                   azureSubscription: UAT/Test Environment
                   appType: webApp
                   appName: ORT-Environment
-                  package: '$(Pipeline.Workspace)\aiml\s.zip'
+                  package: '$(Pipeline.Workspace)\aiml\Tests.zip'
 
 # -------------------------------------------------------------------
 # Stage 3 - WebApp
