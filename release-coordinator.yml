@@ -134,7 +134,7 @@ stages:
 
       steps:
         - powershell: |
-            Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]True"
+            Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]true"
             Write-Host "AI=$(AI)"
             Write-Host "WEB=$(WEB)"
 
