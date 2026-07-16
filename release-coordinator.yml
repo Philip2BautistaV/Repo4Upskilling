@@ -149,7 +149,7 @@ stages:
     - ValidateConfig
 
   #condition: succeeded()
-  condition: and(succeeded(), eq(lower(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled']), 'true'))
+  condition: and(succeeded(), eq(stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled']), 'True'))
   
   jobs:
     - deployment: DataPlatformDeploy
