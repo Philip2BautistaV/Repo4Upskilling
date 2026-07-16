@@ -151,7 +151,7 @@ stages:
   condition: succeeded()
   condition: >
     eq(
-      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
+      $(DP),
       'True'
     )
 
