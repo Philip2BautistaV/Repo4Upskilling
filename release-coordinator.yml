@@ -148,12 +148,12 @@ stages:
   dependsOn:
     - ValidateConfig
 
-  condition: succeeded()
-  #condition: >
-  #  eq(
-  #    stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
-  #    'True'
-  #  )
+  #condition: succeeded()
+  condition: >
+    eq(
+      stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'],
+      'True'
+    )
 
   jobs:
     - deployment: DataPlatformDeploy
