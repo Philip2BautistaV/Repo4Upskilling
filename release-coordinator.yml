@@ -111,9 +111,9 @@ stages:
               
               $config = Get-Content "$(Pipeline.Workspace)/coordinator/release-config.yml" | ConvertFrom-Yaml
 
-              $dp  = $config.release.components.dataplatform.enabled
-              $ai  = $config.release.components.aiml.enabled
-              $web = $config.release.components.webapp.enabled
+              $dp  = $config.components.dataplatform.enabled
+              $ai  = $config.components.aiml.enabled
+              $web = $config.components.webapp.enabled
 
               Write-Host "DP=$dp"
               Write-Host "AI=$ai"
