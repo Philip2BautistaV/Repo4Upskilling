@@ -124,24 +124,6 @@ stages:
               Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
 
 # -------------------------------------------------------------------
-# Stage DebugOutputs
-# -------------------------------------------------------------------
-
-- stage: DebugOutputs
-  dependsOn: ValidateConfig
-  condition: always()
-
-  jobs:
-  - job: PrintOutputs
-
-    variables:
-      webEnabled: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_enabled'] ]
-
-    steps:
-    - powershell: |
-        Write-Host "webEnabled=$(webEnabled)"
-
-# -------------------------------------------------------------------
 # Stage 1 - Data Platform
 # -------------------------------------------------------------------
 
@@ -199,7 +181,6 @@ stages:
     - ValidateConfig
     - DeployDataPlatform
 
-  #condition: succeeded()
   condition: >
     and(
       eq(
@@ -260,7 +241,6 @@ stages:
     - DeployDataPlatform
     - DeployAIML
 
-  #condition: succeeded()
   condition: >
     and(
       eq(
