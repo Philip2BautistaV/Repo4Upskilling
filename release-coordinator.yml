@@ -184,14 +184,7 @@ stages:
     - DeployDataPlatform
 
   #condition: succeeded()
-  condition: >
-    and(
-      succeeded(),
-      eq(
-        dependencies.ValidateConfig.outputs['ReadConfig.configOutput.ai_enabled'],
-        'True'
-      )
-    )
+   condition: and(eq(dependencies.ValidateConfig.outputs['ReadConfig.configOutput.ai_enabled'], 'True'), in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'))
 
   jobs:
     - deployment: AIMLDeploy
@@ -241,14 +234,7 @@ stages:
     - DeployAIML
 
   #condition: succeeded()
-  condition: >
-    and(
-      succeeded(),
-      eq(
-        dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_enabled'],
-        'True'
-      )
-    )
+   condition: and(eq(dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_enabled'], 'True'), in(dependencies.DeployDataPlatform.result, 'Succeeded', 'Skipped'), in(dependencies.DeployAIML.result, 'Succeeded', 'Skipped'))
 
   jobs:
     - deployment: WebAppDeploy
