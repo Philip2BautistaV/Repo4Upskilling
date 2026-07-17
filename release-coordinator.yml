@@ -261,8 +261,8 @@ stages:
  #   - DeployAIML
 
   #condition: succeeded()
-  condition: >
-   and(
+ condition: >
+  and(
     eq(
       dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_enabled'],
       'True'
@@ -278,7 +278,7 @@ stages:
       'Skipped'
     )
   )
-
+  
   jobs:
     - deployment: WebAppDeploy
 
