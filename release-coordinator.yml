@@ -261,11 +261,7 @@ stages:
     - DeployAIML
 
   #condition: succeeded()
-  condition: >
-    eq(
-      dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_enabled'],
-      'True'
-     )
+  condition: always()
 
   jobs:
     - deployment: WebAppDeploy
