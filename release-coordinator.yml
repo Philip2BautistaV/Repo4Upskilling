@@ -262,7 +262,7 @@ stages:
 
   #condition: succeeded()
   condition: >
-  and(
+   and(
     eq(
       dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_enabled'],
       'True'
