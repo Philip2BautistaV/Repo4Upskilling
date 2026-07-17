@@ -257,8 +257,8 @@ stages:
 
   dependsOn:
     - ValidateConfig
- #   - DeployDataPlatform
- #   - DeployAIML
+    - DeployDataPlatform
+    - DeployAIML
 
   #condition: succeeded()
   condition: >
