@@ -109,10 +109,7 @@ stages:
 
               Import-Module powershell-yaml
               
-              #Write-Host "Pipeline.Workspace=$(Pipeline.Workspace)"
-              #Get-ChildItem -Path "$(Pipeline.Workspace)" -Recurse
-              #`
-              $config = Get-Content "$(Build.SourcesDirectory)/coordinator/release-config.yml" | ConvertFrom-Yaml
+              $config = Get-Content "$(Pipeline.Workspace)/coordinator/release-config.yml" | ConvertFrom-Yaml
 
               $dp  = $config.release.components.dataplatform.enabled
               $ai  = $config.release.components.aiml.enabled
