@@ -51,9 +51,16 @@ parameters:
     default: staging
     values:
       - staging
-      - uat
       - production
+      
+variables:
+  - name: ArtifactBranch
+    ${{ if eq(parameters.environment, 'staging') }}:
+      value: refs/heads/develop
 
+    ${{ if eq(parameters.environment, 'production') }}:
+      value: refs/heads/main
+  
   - name: dryRun
     displayName: "Dry Run (validate only, no deployment)"
     type: boolean
@@ -155,7 +162,7 @@ stages:
                   project: DBG-ACN
                   definition: $(resources.pipeline.dataplatform-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
-                  branchName: refs/heads/main
+                  branchName: $(ArtifactBranch)
                   artifactName: dataplatform-drop
                   targetPath: $(Pipeline.Workspace)/DataPlatform
 
@@ -214,7 +221,7 @@ stages:
                   project: DBG-ACN
                   definition: $(resources.pipeline.aiml-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
-                  branchName: refs/heads/main
+                  branchName: $(ArtifactBranch)
                   artifactName: aiml-drop
                   targetPath: $(Pipeline.Workspace)/aiml
 
@@ -279,7 +286,7 @@ stages:
                   project: DBG-ACN
                   definition: $(resources.pipeline.webapp-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
-                  branchName: refs/heads/main
+                  branchName: $(ArtifactBranch)
                   artifactName: webapp-drop
                   targetPath: $(Pipeline.Workspace)/webapp
 
