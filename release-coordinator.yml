@@ -67,22 +67,22 @@ variables:
 #    type: boolean
 #    default: false
 
-resources:
-  pipelines:
-    - pipeline: webapp-ci
-      project: DBG-ACN
-      source: WebApp-CI
+#resources:
+#  pipelines:
+#    - pipeline: webapp-ci
+#      project: DBG-ACN
+#      source: WebApp-CI
 #      branch: $(ArtifactBranch)
 
-    - pipeline: dataplatform-ci
-      project: DBG-ACN
-      source: DataPlatform-CI
+#    - pipeline: dataplatform-ci
+#      project: DBG-ACN
+#      source: DataPlatform-CI
 #      branch: $(ArtifactBranch)
 
-    - pipeline: aiml-ci
-      project: DBG-ACN
-      source: AIML-CI
- #     branch: $(ArtifactBranch)
+#    - pipeline: aiml-ci
+#      project: DBG-ACN
+#      source: AIML-CI
+#      branch: $(ArtifactBranch)
 
 pool:
   vmImage: windows-latest
