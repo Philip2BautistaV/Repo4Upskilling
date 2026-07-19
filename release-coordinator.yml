@@ -164,7 +164,7 @@ stages:
                 displayName: Download DataPlatform Artifact
                 inputs:
                   buildType: specific
- #                 project: DBG-ACN
+                  project: DBG-ACN
                   definition: 43
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
@@ -227,7 +227,7 @@ stages:
                 displayName: Download AIML Artifact
                 inputs:
                   buildType: specific
-#                  project: DBG-ACN
+                  project: DBG-ACN
                   definition: 44
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
@@ -296,7 +296,7 @@ stages:
                 displayName: Download WebApp Artifact
                 inputs:
                   buildType: specific
- #                 project: DBG-ACN
+                  project: DBG-ACN
                   definition: 42
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
