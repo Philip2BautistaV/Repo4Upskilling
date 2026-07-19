@@ -46,7 +46,7 @@ trigger: none
 
 parameters:
   - name: environment
-    displayName: "Target Environment"
+    displayName: Target Environment
     type: string
     default: staging
     values:
