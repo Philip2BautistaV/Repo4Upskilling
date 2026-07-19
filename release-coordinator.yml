@@ -46,7 +46,7 @@ trigger: none
 
 parameters:
   - name: environment
-    displayName: Target Environment
+    displayName: "Target Environment"
     type: string
     default: staging
     values:
@@ -55,10 +55,10 @@ parameters:
       
 variables:
   - name: ArtifactBranch
-    ${{ if eq(parameters.environment, 'staging') }}:
-      value: refs/heads/develop
+    value: refs/heads/develop
 
-    ${{ if eq(parameters.environment, 'production') }}:
+  - ${{ if eq(parameters.environment, 'production') }}:
+    - name: ArtifactBranch
       value: refs/heads/main
   
   - name: dryRun
