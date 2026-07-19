@@ -64,17 +64,17 @@ resources:
     - pipeline: webapp-ci
       project: DBG-ACN
       source: WebApp-CI
-      branch: main
+      branch: develop
 
     - pipeline: dataplatform-ci
       project: DBG-ACN
       source: DataPlatform-CI
-      branch: main
+      branch: develop
 
     - pipeline: aiml-ci
       project: DBG-ACN
       source: AIML-CI
-      branch: main
+      branch: develop
 
 pool:
   vmImage: windows-latest
@@ -155,7 +155,7 @@ stages:
                   project: DBG-ACN
                   definition: $(resources.pipeline.dataplatform-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
-                  branchName: refs/heads/main
+                  branchName: refs/heads/develop
                   artifactName: dataplatform-drop
                   targetPath: $(Pipeline.Workspace)/DataPlatform
 
@@ -214,7 +214,7 @@ stages:
                   project: DBG-ACN
                   definition: $(resources.pipeline.aiml-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
-                  branchName: refs/heads/main
+                  branchName: refs/heads/develop
                   artifactName: aiml-drop
                   targetPath: $(Pipeline.Workspace)/aiml
 
@@ -279,7 +279,7 @@ stages:
                   project: DBG-ACN
                   definition: $(resources.pipeline.webapp-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
-                  branchName: refs/heads/main
+                  branchName: refs/heads/develop
                   artifactName: webapp-drop
                   targetPath: $(Pipeline.Workspace)/webapp
 
