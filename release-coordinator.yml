@@ -54,11 +54,13 @@ parameters:
       - production
 
 variables:
+- ${{ if eq(parameters.environment, 'production') }}:
   - name: ArtifactBranch
-    ${{ if eq(parameters.environment, 'production') }}:
-      value: refs/heads/main
-    ${{ else }}:
-      value: refs/heads/develop
+    value: refs/heads/main
+
+- ${{ if eq(parameters.environment, 'staging') }}:
+  - name: ArtifactBranch
+    value: refs/heads/develop
 
 #  - name: dryRun
 #    displayName: "Dry Run (validate only, no deployment)"
