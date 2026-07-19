@@ -70,17 +70,17 @@ resources:
     - pipeline: webapp-ci
       project: DBG-ACN
       source: WebApp-CI
-      branch: $(ArtifactBranch)
+#      branch: $(ArtifactBranch)
 
     - pipeline: dataplatform-ci
       project: DBG-ACN
       source: DataPlatform-CI
-      branch: $(ArtifactBranch)
+#      branch: $(ArtifactBranch)
 
     - pipeline: aiml-ci
       project: DBG-ACN
       source: AIML-CI
-      branch: $(ArtifactBranch)
+ #     branch: $(ArtifactBranch)
 
 pool:
   vmImage: windows-latest
@@ -155,10 +155,9 @@ stages:
 
               - task: DownloadPipelineArtifact@2
                 displayName: Download DataPlatform Artifact
-
                 inputs:
                   buildType: specific
-                  project: DBG-ACN
+ #                 project: DBG-ACN
                   definition: $(resources.pipeline.dataplatform-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
@@ -214,10 +213,9 @@ stages:
 
               - task: DownloadPipelineArtifact@2
                 displayName: Download AIML Artifact
-
                 inputs:
                   buildType: specific
-                  project: DBG-ACN
+#                  project: DBG-ACN
                   definition: $(resources.pipeline.aiml-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
@@ -279,10 +277,9 @@ stages:
 
               - task: DownloadPipelineArtifact@2
                 displayName: Download WebApp Artifact
-
                 inputs:
                   buildType: specific
-                  project: DBG-ACN
+ #                 project: DBG-ACN
                   definition: $(resources.pipeline.webapp-ci.pipelineID)
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
