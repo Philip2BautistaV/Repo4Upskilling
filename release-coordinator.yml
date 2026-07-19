@@ -69,17 +69,17 @@ resources:
   pipelines:
     - pipeline: webapp-ci
       project: DBG-ACN
-      source: WebApp-CI
+#      source: WebApp-CI
 #      branch: $(ArtifactBranch)
 
     - pipeline: dataplatform-ci
       project: DBG-ACN
-      source: DataPlatform-CI
+#      source: DataPlatform-CI
 #      branch: $(ArtifactBranch)
 
     - pipeline: aiml-ci
       project: DBG-ACN
-      source: AIML-CI
+ #     source: AIML-CI
  #     branch: $(ArtifactBranch)
 
 pool:
