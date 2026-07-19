@@ -155,12 +155,17 @@ stages:
             steps:
               - download: none
 
+              - powershell: |
+                  Write-Host "Environment = ${{ parameters.environment }}"
+                  Write-Host "ArtifactBranch = $(ArtifactBranch)"
+                displayName: Debug Branch
+
               - task: DownloadPipelineArtifact@2
                 displayName: Download DataPlatform Artifact
                 inputs:
                   buildType: specific
  #                 project: DBG-ACN
-                  definition: $(resources.pipeline.dataplatform-ci.pipelineID)
+                  definition: 43
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
                   artifactName: dataplatform-drop
@@ -213,12 +218,17 @@ stages:
             steps:
               - download: none
 
+              - powershell: |
+                  Write-Host "Environment = ${{ parameters.environment }}"
+                  Write-Host "ArtifactBranch = $(ArtifactBranch)"
+                displayName: Debug Branch
+
               - task: DownloadPipelineArtifact@2
                 displayName: Download AIML Artifact
                 inputs:
                   buildType: specific
 #                  project: DBG-ACN
-                  definition: $(resources.pipeline.aiml-ci.pipelineID)
+                  definition: 44
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
                   artifactName: aiml-drop
@@ -277,12 +287,17 @@ stages:
             steps:
               - download: none
 
+              - powershell: |
+                  Write-Host "Environment = ${{ parameters.environment }}"
+                  Write-Host "ArtifactBranch = $(ArtifactBranch)"
+                displayName: Debug Branch
+
               - task: DownloadPipelineArtifact@2
                 displayName: Download WebApp Artifact
                 inputs:
                   buildType: specific
  #                 project: DBG-ACN
-                  definition: $(resources.pipeline.webapp-ci.pipelineID)
+                  definition: 42
                   buildVersionToDownload: latestFromBranch
                   branchName: $(ArtifactBranch)
                   artifactName: webapp-drop
