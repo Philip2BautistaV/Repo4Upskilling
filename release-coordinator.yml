@@ -70,17 +70,17 @@ resources:
     - pipeline: webapp-ci
       project: DBG-ACN
       source: WebApp-CI
-#      branch: $(ArtifactBranch)
+      branch: $(ArtifactBranch)
 
     - pipeline: dataplatform-ci
       project: DBG-ACN
       source: DataPlatform-CI
-#      branch: $(ArtifactBranch)
+      branch: $(ArtifactBranch)
 
     - pipeline: aiml-ci
       project: DBG-ACN
       source: AIML-CI
- #     branch: $(ArtifactBranch)
+      branch: $(ArtifactBranch)
 
 pool:
   vmImage: windows-latest
