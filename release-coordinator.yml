@@ -62,10 +62,10 @@ variables:
   - name: ArtifactBranch
     value: refs/heads/develop
 
-  - name: dryRun
-    displayName: "Dry Run (validate only, no deployment)"
-    type: boolean
-    default: false
+#  - name: dryRun
+#    displayName: "Dry Run (validate only, no deployment)"
+#    type: boolean
+#    default: false
 
 resources:
   pipelines:
@@ -174,7 +174,7 @@ stages:
               - task: AzureWebApp@1
                 displayName: Deploy Package to Staging101
 
-                condition: ne('${{ parameters.dryRun }}','true')
+#                condition: ne('${{ parameters.dryRun }}','true')
 
                 inputs:
                   azureSubscription: Development Environment
@@ -237,7 +237,7 @@ stages:
               - task: AzureWebApp@1
                 displayName: Deploy Package to ORT-Environment
 
-                condition: ne('${{ parameters.dryRun }}','true')
+#                condition: ne('${{ parameters.dryRun }}','true')
 
                 inputs:
                   azureSubscription: UAT/Test Environment
@@ -306,7 +306,7 @@ stages:
               - task: AzureWebApp@1
                 displayName: Deploy React App and API
 
-                condition: ne('${{ parameters.dryRun }}','true')
+#                condition: ne('${{ parameters.dryRun }}','true')
 
                 inputs:
                   azureSubscription: Production Environment
