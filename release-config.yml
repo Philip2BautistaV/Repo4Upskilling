@@ -11,13 +11,13 @@ release:
 
 components:
   dataplatform:
-    enabled: true                    # Set to true when DB/Fabric changes are in scope
+    enabled: false                    # Set to true when DB/Fabric changes are in scope
     pipelineName: "DataPlatform-CI"
 #    branch: "refs/heads/develop"
     artifactName: "dataplatform-drop"
 
   aiml:
-    enabled: true                    # Set to true when ML pipeline changes are in scope
+    enabled: false                    # Set to true when ML pipeline changes are in scope
     pipelineName: "AIML-CI"
 #    branch: "refs/heads/develop"
     artifactName: "aiml-drop"
