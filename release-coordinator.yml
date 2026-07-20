@@ -138,7 +138,7 @@ stages:
   dependsOn: ValidateConfig
 
   jobs:
-    - job: Test
+  - job: Test
     variables:
       dpEnabled: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'] ]
 
