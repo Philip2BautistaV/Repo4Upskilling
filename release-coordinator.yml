@@ -132,21 +132,6 @@ stages:
               Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
 
 # -------------------------------------------------------------------
-# Stage 1 - DebugOutput
-# -------------------------------------------------------------------
-- stage: DebugOutput
-  dependsOn: ValidateConfig
-
-  jobs:
-    - job: Test
-      variables:
-        dpEnabled: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'] ]
-
-      steps:
-        - script: |
-            echo "dpEnabled=$(dpEnabled)"
-
-# -------------------------------------------------------------------
 # Stage 1 - Data Platform
 # -------------------------------------------------------------------
 
@@ -196,6 +181,21 @@ stages:
                   appType: webApp
                   appName: Staging101
                   package: '$(Pipeline.Workspace)\DataPlatform\s.zip'
+
+# -------------------------------------------------------------------
+# Stage 1 - DebugOutput
+# -------------------------------------------------------------------
+- stage: DebugOutput
+  dependsOn: ValidateConfig
+
+  jobs:
+    - job: Test
+      variables:
+        dpEnabled: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'] ]
+
+      steps:
+        - script: |
+            echo "dpEnabled=$(dpEnabled)"
 
 # -------------------------------------------------------------------
 # Stage 2 - AIML
