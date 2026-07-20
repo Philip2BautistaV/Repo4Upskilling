@@ -138,13 +138,13 @@ stages:
   dependsOn: ValidateConfig
 
   jobs:
-  - job: Test
-    variables:
-      dpEnabled: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'] ]
+    - job: Test
+      variables:
+        dpEnabled: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'] ]
 
-    steps:
-    - script: |
-        echo "dpEnabled=$(dpEnabled)"
+      steps:
+        - script: |
+            echo "dpEnabled=$(dpEnabled)"
 
 # -------------------------------------------------------------------
 # Stage 1 - Data Platform
