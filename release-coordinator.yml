@@ -141,7 +141,7 @@ stages:
   dependsOn:
     - ValidateConfig
 
-  condition: eq(stagedependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True'))
+  condition: eq(stagedependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
   #condition: eq(dependencies.ValidateConfig.outputs['ReadConfig.configOutput.dp_enabled'], 'True'))
 
   jobs:
