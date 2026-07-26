@@ -103,67 +103,33 @@ stages:
         - checkout: self
           path: coordinator
 
-- task: PowerShell@2
-  name: configOutput
-  displayName: Parse release-config.yml
-  inputs:
-    targetType: inline
-    script: |
-      if (-not (Get-Module -ListAvailable -Name powershell-yaml)) {
-        Install-Module powershell-yaml -Scope CurrentUser -Force
-      }
+        - task: PowerShell@2
+          name: configOutput
+          displayName: Parse release-config.yml
 
-      Import-Module powershell-yaml
+          inputs:
+            targetType: inline
+            script: |
 
-      $configPath = "$(Build.SourcesDirectory)/release-config.yml"
+              if (-not (Get-Module -ListAvailable -Name powershell-yaml)) {
+                Install-Module powershell-yaml -Force -Scope CurrentUser
+              }
 
-      Write-Host "Reading release config from: $configPath"
+              Import-Module powershell-yaml
+              
+              $config = Get-Content "$(Pipeline.Workspace)/coordinator/release-config.yml" | ConvertFrom-Yaml
 
-      $config = Get-Content $configPath -Raw | ConvertFrom-Yaml
+              $dp  = $config.components.dataplatform.enabled
+              $ai  = $config.components.aiml.enabled
+              $web = $config.components.webapp.enabled
 
-      # Enabled flags
-      $dpEnabled  = $config.components.dataplatform.enabled
-      $aiEnabled  = $config.components.aiml.enabled
-      $webEnabled = $config.components.webapp.enabled
+              Write-Host "DP=$dp"
+              Write-Host "AI=$ai"
+              Write-Host "WEB=$web"
 
-      # Build numbers
-      $dpBuildNumber  = $config.components.dataplatform.buildNumber
-      $aiBuildNumber  = $config.components.aiml.buildNumber
-      $webBuildNumber = $config.components.webapp.buildNumber
-
-      # Pipeline definition IDs
-      $dpDefinitionId  = $config.components.dataplatform.pipelineDefinitionId
-      $aiDefinitionId  = $config.components.aiml.pipelineDefinitionId
-      $webDefinitionId = $config.components.webapp.pipelineDefinitionId
-
-      # Artifact names
-      $dpArtifactName  = $config.components.dataplatform.artifactName
-      $aiArtifactName  = $config.components.aiml.artifactName
-      $webArtifactName = $config.components.webapp.artifactName
-
-      Write-Host "DataPlatform enabled: $dpEnabled"
-      Write-Host "AIML enabled: $aiEnabled"
-      Write-Host "WebApp enabled: $webEnabled"
-
-      Write-Host "WebApp build number: $webBuildNumber"
-
-      # Output variables used by stage conditions
-      Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$dpEnabled"
-      Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$aiEnabled"
-      Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$webEnabled"
-
-      # Output variables used by download steps
-      Write-Host "##vso[task.setvariable variable=dp_buildNumber;isOutput=true]$dpBuildNumber"
-      Write-Host "##vso[task.setvariable variable=ai_buildNumber;isOutput=true]$aiBuildNumber"
-      Write-Host "##vso[task.setvariable variable=web_buildNumber;isOutput=true]$webBuildNumber"
-
-      Write-Host "##vso[task.setvariable variable=dp_definitionId;isOutput=true]$dpDefinitionId"
-      Write-Host "##vso[task.setvariable variable=ai_definitionId;isOutput=true]$aiDefinitionId"
-      Write-Host "##vso[task.setvariable variable=web_definitionId;isOutput=true]$webDefinitionId"
-
-      Write-Host "##vso[task.setvariable variable=dp_artifactName;isOutput=true]$dpArtifactName"
-      Write-Host "##vso[task.setvariable variable=ai_artifactName;isOutput=true]$aiArtifactName"
-      Write-Host "##vso[task.setvariable variable=web_artifactName;isOutput=true]$webArtifactName"
+              Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($dp.ToString())"
+              Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
+              Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
 
 # -------------------------------------------------------------------
 # Stage 1 - Data Platform
@@ -314,10 +280,6 @@ stages:
     - deployment: WebAppDeploy
 
       environment: ${{ parameters.environment }}
-      variables:
-        webBuildNumber: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_buildNumber'] ]
-        webDefinitionId: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_definitionId'] ]
-        webArtifactName: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_artifactName'] ]
 
       strategy:
         runOnce:
@@ -331,46 +293,6 @@ stages:
                   Write-Host "ArtifactBranch = $(ArtifactBranch)"
                 displayName: Debug Branch
 
-              - task: PowerShell@2
-                displayName: Resolve WebApp build number to build ID
-                inputs:
-                  targetType: inline
-                  script: |
-                    $buildNumber = "$(webBuildNumber)"
-                    $definitionId = "$(webDefinitionId)"
- 
-                    if ([string]:: {throw "WebApp buildNumber is empty in release-config.yml."
-                                   }
-
-                    if ([string]:: {throw "WebApp pipelineDefinitionId is empty in release-config.yml."
-                                   }
-
-                  Write-Host "Resolving WebApp build number: $buildNumber"
-                  Write-Host "Pipeline definition ID: $definitionId"
-                  $encodedBuildNumber = [System.Uri]::EscapeDataString($buildNumber)
-
-                  $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/builds?definitions=$definitionId&buildNumber=$encodedBuildNumber&statusFilter=completed&resultFilter=succeeded&api-version=7.1"
-
-                  Write-Host "Calling Azure DevOps Build API..."
-
-                  $headers = @{Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN"
-                              }
-
-                  $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get
-
-                  if ($response.count -eq 0) {throw "No successful WebApp-CI build found for buildNumber '$buildNumber'."
-                                             }
-                  if ($response.count -gt 1) {Write-Host "Multiple builds found. Using the first returned build."
-                                             } 
-
-                  $buildId = $response.value[0].id
-
-                  Write-Host "Resolved WebApp Build ID: $buildId"
-
-                  Write-Host "##vso[task.setvariable variable=webBuildId]$buildId"
-              env:
-                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
-              
               - task: DownloadPipelineArtifact@2
                 displayName: Download WebApp Artifact
                 inputs:
