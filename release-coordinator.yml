@@ -314,6 +314,10 @@ stages:
     - deployment: WebAppDeploy
 
       environment: ${{ parameters.environment }}
+      variables:
+        webBuildNumber: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_buildNumber'] ]
+        webDefinitionId: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_definitionId'] ]
+        webArtifactName: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_artifactName'] ]
 
       strategy:
         runOnce:
@@ -327,6 +331,46 @@ stages:
                   Write-Host "ArtifactBranch = $(ArtifactBranch)"
                 displayName: Debug Branch
 
+              - task: PowerShell@2
+                displayName: Resolve WebApp build number to build ID
+                inputs:
+                  targetType: inline
+                  script: |
+                    $buildNumber = "$(webBuildNumber)"
+                    $definitionId = "$(webDefinitionId)"
+ 
+                    if ([string]:: {throw "WebApp buildNumber is empty in release-config.yml."
+                                   }
+
+                    if ([string]:: {throw "WebApp pipelineDefinitionId is empty in release-config.yml."
+                                   }
+
+                  Write-Host "Resolving WebApp build number: $buildNumber"
+                  Write-Host "Pipeline definition ID: $definitionId"
+                  $encodedBuildNumber = [System.Uri]::EscapeDataString($buildNumber)
+
+                  $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/builds?definitions=$definitionId&buildNumber=$encodedBuildNumber&statusFilter=completed&resultFilter=succeeded&api-version=7.1"
+
+                  Write-Host "Calling Azure DevOps Build API..."
+
+                  $headers = @{Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN"
+                              }
+
+                  $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get
+
+                  if ($response.count -eq 0) {throw "No successful WebApp-CI build found for buildNumber '$buildNumber'."
+                                             }
+                  if ($response.count -gt 1) {Write-Host "Multiple builds found. Using the first returned build."
+                                             } 
+
+                  $buildId = $response.value[0].id
+
+                  Write-Host "Resolved WebApp Build ID: $buildId"
+
+                  Write-Host "##vso[task.setvariable variable=webBuildId]$buildId"
+              env:
+                SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+              
               - task: DownloadPipelineArtifact@2
                 displayName: Download WebApp Artifact
                 inputs:
