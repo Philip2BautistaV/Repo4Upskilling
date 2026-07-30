@@ -24,6 +24,25 @@
 #      stage untouched — that one's correct as-is, since it's a job variable
 #      expression, not a stage condition.
 #
+# CHANGES MADE IN THIS PASS (buildNumber auto-pickup):
+#   4. Stage 0 (ValidateConfig) now also reads each component's `buildNumber`
+#      field from release-config.yml and derives a `downloadMode` per
+#      component:
+#        - buildNumber is blank/null  -> downloadMode = "latestFromBranch"
+#          (unchanged behavior — downloads the newest build on ArtifactBranch)
+#        - buildNumber has a value    -> downloadMode = "specific"
+#          (that exact build is downloaded instead of the branch's latest)
+#      Both values are published as job outputs (<component>_buildNumber,
+#      <component>_downloadMode) alongside the existing <component>_enabled
+#      outputs, using the same `dependencies.ValidateConfig.outputs[...]`
+#      pattern already used for the enabled flags.
+#   5. Each deploy stage (DataPlatform/AIML/WebApp) now maps those two new
+#      outputs into job-level variables via `$[ dependencies... ]` runtime
+#      expressions, and its DownloadPipelineArtifact@2 task uses
+#      `buildVersionToDownload: $(downloadMode)` with both `buildId` and
+#      `branchName` supplied — the task ignores whichever one doesn't match
+#      the selected mode, so no extra conditional YAML is needed.
+#
 # FLAGGED, NOT CHANGED:
 #   - The DataPlatform AzureCLI@2 step's inlineScript still only echoes a
 #     message — the `bash .../dataplatform/scripts/deploy.sh --env ...` call
@@ -37,6 +56,16 @@
 #     ("Development Environment" / "UAT/Test Environment" / "Production
 #     Environment") independent of the ${{ parameters.environment }} value
 #     chosen at queue time.
+#   - IMPORTANT buildNumber caveat: DownloadPipelineArtifact@2's `buildId`
+#     input expects Azure DevOps' internal numeric Run ID (the id in a run's
+#     URL, e.g. `.../_build/results?buildId=12345`) — NOT the human-readable
+#     build number label (e.g. "20260730.3") that Azure DevOps also calls
+#     "Build Number" in its UI. release-config.yml's `buildNumber` value is
+#     passed straight through as `buildId` below. If you want to type in the
+#     human-readable label instead, this needs an extra resolution step
+#     (e.g. `az pipelines runs list --project DBG-ACN --pipeline-ids <id>
+#     --query "[?buildNumber=='<value>'].id" -o tsv`) to convert it to a run
+#     ID first. Say the word if you'd like that resolution step added.
 #
 # Editing this file in a YAML-aware editor (VS Code with the Azure Pipelines
 # extension, which lints indentation live) before pasting into ADO will help
@@ -123,13 +152,40 @@ stages:
               $ai  = $config.components.aiml.enabled
               $web = $config.components.webapp.enabled
 
-              Write-Host "DP=$dp"
-              Write-Host "AI=$ai"
-              Write-Host "WEB=$web"
+              # Normalize a possibly-null/blank YAML scalar to a plain string.
+              function Get-BuildNumberString($value) {
+                if ($null -eq $value) { return "" }
+                $s = [string]$value
+                if ([string]::IsNullOrWhiteSpace($s)) { return "" }
+                return $s
+              }
+
+              $dpBuild  = Get-BuildNumberString $config.components.dataplatform.buildNumber
+              $aiBuild  = Get-BuildNumberString $config.components.aiml.buildNumber
+              $webBuild = Get-BuildNumberString $config.components.webapp.buildNumber
+
+              # No buildNumber in release-config.yml -> keep grabbing the latest
+              # build on ArtifactBranch. A buildNumber value present -> deploy
+              # that exact build instead.
+              $dpMode  = if ($dpBuild)  { "specific" } else { "latestFromBranch" }
+              $aiMode  = if ($aiBuild)  { "specific" } else { "latestFromBranch" }
+              $webMode = if ($webBuild) { "specific" } else { "latestFromBranch" }
+
+              Write-Host "DP=$dp   buildNumber='$dpBuild'   downloadMode=$dpMode"
+              Write-Host "AI=$ai   buildNumber='$aiBuild'   downloadMode=$aiMode"
+              Write-Host "WEB=$web  buildNumber='$webBuild'  downloadMode=$webMode"
 
               Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($dp.ToString())"
               Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
               Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
+
+              Write-Host "##vso[task.setvariable variable=dp_buildNumber;isOutput=true]$dpBuild"
+              Write-Host "##vso[task.setvariable variable=ai_buildNumber;isOutput=true]$aiBuild"
+              Write-Host "##vso[task.setvariable variable=web_buildNumber;isOutput=true]$webBuild"
+
+              Write-Host "##vso[task.setvariable variable=dp_downloadMode;isOutput=true]$dpMode"
+              Write-Host "##vso[task.setvariable variable=ai_downloadMode;isOutput=true]$aiMode"
+              Write-Host "##vso[task.setvariable variable=web_downloadMode;isOutput=true]$webMode"
 
 # -------------------------------------------------------------------
 # Stage 1 - Data Platform
@@ -149,6 +205,10 @@ stages:
 
       environment: ${{ parameters.environment }}
 
+      variables:
+        buildNumber: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.dp_buildNumber'] ]
+        downloadMode: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.dp_downloadMode'] ]
+
       strategy:
         runOnce:
           deploy:
@@ -159,6 +219,8 @@ stages:
               - powershell: |
                   Write-Host "Environment = ${{ parameters.environment }}"
                   Write-Host "ArtifactBranch = $(ArtifactBranch)"
+                  Write-Host "buildNumber (from release-config.yml) = $(buildNumber)"
+                  Write-Host "downloadMode = $(downloadMode)"
                 displayName: Debug Branch
 
               - task: DownloadPipelineArtifact@2
@@ -167,7 +229,8 @@ stages:
                   buildType: specific
                   project: DBG-ACN
                   definition: 43
-                  buildVersionToDownload: latestFromBranch
+                  buildVersionToDownload: $(downloadMode)
+                  buildId: $(buildNumber)
                   branchName: $(ArtifactBranch)
                   artifactName: dataplatform-drop
                   targetPath: $(Pipeline.Workspace)/DataPlatform
@@ -212,6 +275,10 @@ stages:
 
       environment: ${{ parameters.environment }}
 
+      variables:
+        buildNumber: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.ai_buildNumber'] ]
+        downloadMode: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.ai_downloadMode'] ]
+
       strategy:
         runOnce:
           deploy:
@@ -222,6 +289,8 @@ stages:
               - powershell: |
                   Write-Host "Environment = ${{ parameters.environment }}"
                   Write-Host "ArtifactBranch = $(ArtifactBranch)"
+                  Write-Host "buildNumber (from release-config.yml) = $(buildNumber)"
+                  Write-Host "downloadMode = $(downloadMode)"
                 displayName: Debug Branch
 
               - task: DownloadPipelineArtifact@2
@@ -230,7 +299,8 @@ stages:
                   buildType: specific
                   project: DBG-ACN
                   definition: 44
-                  buildVersionToDownload: latestFromBranch
+                  buildVersionToDownload: $(downloadMode)
+                  buildId: $(buildNumber)
                   branchName: $(ArtifactBranch)
                   artifactName: aiml-drop
                   targetPath: $(Pipeline.Workspace)/aiml
@@ -281,6 +351,10 @@ stages:
 
       environment: ${{ parameters.environment }}
 
+      variables:
+        buildNumber: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_buildNumber'] ]
+        downloadMode: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_downloadMode'] ]
+
       strategy:
         runOnce:
           deploy:
@@ -291,6 +365,8 @@ stages:
               - powershell: |
                   Write-Host "Environment = ${{ parameters.environment }}"
                   Write-Host "ArtifactBranch = $(ArtifactBranch)"
+                  Write-Host "buildNumber (from release-config.yml) = $(buildNumber)"
+                  Write-Host "downloadMode = $(downloadMode)"
                 displayName: Debug Branch
 
               - task: DownloadPipelineArtifact@2
@@ -299,7 +375,8 @@ stages:
                   buildType: specific
                   project: DBG-ACN
                   definition: 42
-                  buildVersionToDownload: latestFromBranch
+                  buildVersionToDownload: $(downloadMode)
+                  buildId: $(buildNumber)
                   branchName: $(ArtifactBranch)
                   artifactName: webapp-drop
                   targetPath: $(Pipeline.Workspace)/webapp
@@ -343,6 +420,20 @@ stages:
 #   webapp.enabled:       false
 #   Result: Stage 1 is skipped. Stage 2 runs. Stage 3 is skipped.
 #
+# Pinning a specific build instead of "latest on branch":
+#   Leave a component's buildNumber blank        -> its stage downloads the
+#                                                    newest build on ArtifactBranch
+#                                                    (unchanged default behavior).
+#   Set a component's buildNumber, e.g.:
+#     webapp:
+#       buildNumber: 12345
+#   -> WebApp's stage downloads that exact Run ID instead of the branch's
+#      latest build. Each component's buildNumber is independent, so you can
+#      pin WebApp while leaving DataPlatform/AIML on latestFromBranch, etc.
+#   NOTE: buildNumber here must be the Azure DevOps Run ID (the id in the
+#   run's URL), not the human-readable "Build Number" label ADO also shows —
+#   see the FLAGGED note near the top of this file.
+#
 # ─────────────────────────────────────────────────────────────────────────────
 # NOTES FOR THE DEVOPS ENGINEER IMPLEMENTING THIS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -366,3 +457,11 @@ stages:
 #    commented eq(...) blocks now use the correct `dependencies` context —
 #    uncomment and replace `condition: succeeded()` with the block above when
 #    you're ready to gate AIML/WebApp the same way DataPlatform is gated.
+#
+# 6. buildNumber support: each stage's `variables:` block pulls buildNumber
+#    and downloadMode from Stage 0's outputs at runtime, and the
+#    DownloadPipelineArtifact@2 task switches between "specific" (exact
+#    build) and "latestFromBranch" purely by which value ReadConfig
+#    published — no per-stage conditionals needed. If a future component is
+#    added, give it the same buildNumber field in release-config.yml plus
+#    the matching dp/ai/web-style outputs and job variables here.
