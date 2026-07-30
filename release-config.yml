@@ -21,7 +21,7 @@ components:
     enabled: true                    # Set to true when ML pipeline changes are in scope
     pipelineName: "AIML-CI"
     branch: "$(ArtifactBranch)"
-    buildNumber: "20260730.2"
+    buildNumber: "20260730.1"
     artifactName: "aiml-drop"
     note: "AIML always deploys after DataPlatform when both are enabled"
 
