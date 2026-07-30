@@ -131,14 +131,6 @@ stages:
               Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
               Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
 
-        - task: PowerShell@2
-          name: configOutput
-          
-          inputs:
-            targetType: inline
-            script: |
-              Install-Module powershell-yaml -Force -Scope CurrentUser
-
               $config = Get-Content "$(Build.SourcesDirectory)/coordinator/release-config.yml" -Raw | ConvertFrom-Yaml
 
               Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($config.components.dataplatform.enabled)"
