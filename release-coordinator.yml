@@ -131,8 +131,23 @@ stages:
               Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
               Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
 
+        - task: PowerShell@2
+          name: configOutput
+          
+          inputs:
+            targetType: inline
+            script: |
+              Install-Module powershell-yaml -Force -Scope CurrentUser
+
+              $config = Get-Content "$(Build.SourcesDirectory)/coordinator/release-config.yml" -Raw | ConvertFrom-Yaml
+
+              Write-Host "##vso[task.setvariable variable=dp_enabled;isOutput=true]$($config.components.dataplatform.enabled)"
               Write-Host "##vso[task.setvariable variable=dp_buildNumber;isOutput=true]$($config.components.dataplatform.buildNumber)"
+
+              Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($config.components.aiml.enabled)"
               Write-Host "##vso[task.setvariable variable=ai_buildNumber;isOutput=true]$($config.components.aiml.buildNumber)"
+
+              Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($config.components.webapp.enabled)"
               Write-Host "##vso[task.setvariable variable=web_buildNumber;isOutput=true]$($config.components.webapp.buildNumber)"
   
 # -------------------------------------------------------------------
@@ -145,6 +160,12 @@ stages:
   dependsOn:
     - ValidateConfig
 
+  variables:
+    DPBuildNumber: $[
+      stageDependencies.ValidateConfig.ReadConfig.outputs[
+        'configOutput.dp_buildNumber'
+    ]
+  ]
   #condition: eq(stagedependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
   condition: and(succeeded(), eq(dependencies.ValidateConfig.outputs['ReadConfig.configOutput.dp_enabled'], 'True'))
 
@@ -164,6 +185,12 @@ stages:
                   Write-Host "Environment = ${{ parameters.environment }}"
                   Write-Host "ArtifactBranch = $(ArtifactBranch)"
                 displayName: Debug Branch
+
+              - powershell: |
+                  if ([string]::
+                  {
+                      throw "DataPlatform buildNumber is missing from release-config.yml"
+                  }
 
               - task: DownloadPipelineArtifact@2
                 displayName: Download DataPlatform Artifact
@@ -198,6 +225,13 @@ stages:
     - ValidateConfig
     - DeployDataPlatform
 
+  variables:
+    AIMLBuildNumber: $[
+      stageDependencies.ValidateConfig.ReadConfig.outputs[
+        'configOutput.ai_buildNumber'
+    ]
+  ]
+
   condition: >
     and(
       eq(
@@ -227,6 +261,12 @@ stages:
                   Write-Host "Environment = ${{ parameters.environment }}"
                   Write-Host "ArtifactBranch = $(ArtifactBranch)"
                 displayName: Debug Branch
+
+              - powershell: |
+                  if ([string]::
+                  {
+                      throw "AIML buildNumber is missing from release-config.yml"
+                  }
 
               - task: DownloadPipelineArtifact@2
                 displayName: Download AIML Artifact
@@ -262,6 +302,13 @@ stages:
     - DeployDataPlatform
     - DeployAIML
 
+  variables:
+    WebBuildNumber: $[
+      stageDependencies.ValidateConfig.ReadConfig.outputs[
+        'configOutput.web_buildNumber'
+    ]
+  ]
+
   condition: >
     and(
       eq(
@@ -296,6 +343,14 @@ stages:
                   Write-Host "Environment = ${{ parameters.environment }}"
                   Write-Host "ArtifactBranch = $(ArtifactBranch)"
                 displayName: Debug Branch
+
+              - powershell: |
+                  if ([string]::
+                  {
+                      throw "WebApp buildNumber is missing from release-config.yml"
+                  }
+
+    Write-Host "Using build $(DPBuildNumber)"
 
               - task: DownloadPipelineArtifact@2
                 displayName: Download WebApp Artifact
