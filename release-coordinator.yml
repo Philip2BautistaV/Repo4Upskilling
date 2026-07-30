@@ -128,16 +128,28 @@ resources:
       project: DBG-ACN
       source: WebApp-CI
 #      branch: $(ArtifactBranch)
+      trigger:
+        branches:
+          include:
+            - develop
 
     - pipeline: dataplatform-ci
       project: DBG-ACN
       source: DataPlatform-CI
 #      branch: $(ArtifactBranch)
+      trigger:
+        branches:
+          include:
+            - develop
 
     - pipeline: aiml-ci
       project: DBG-ACN
       source: AIML-CI
 #      branch: $(ArtifactBranch)
+      trigger:
+        branches:
+          include:
+            - develop
 
 pool:
   vmImage: windows-latest
