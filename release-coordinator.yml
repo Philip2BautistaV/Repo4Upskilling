@@ -79,6 +79,23 @@
 #      Fixed for real in #5 above by moving back to JOB-level `variables:`
 #      and switching to `stageDependencies`.
 #
+# CHANGES MADE IN THIS PASS (Target Environment must win over a stale buildNumber):
+#   9. Bug: a Build Number label (e.g. "20260730.2") is NOT branch-scoped in
+#      Azure DevOps — the Build REST API lookup in each "Resolve <Component>
+#      Build ID" step matched on buildNumber alone, so if that label
+#      happened to belong to a run built from `main`, it would resolve and
+#      download that run even when the Target Environment parameter was set
+#      to staging (ArtifactBranch=refs/heads/develop). That let a
+#      mismatched buildNumber silently override the selected environment.
+#      Fixed by adding `&branchName=$encodedBranch` (URL-encoded
+#      $(ArtifactBranch)) to each Resolve step's REST query, so a
+#      buildNumber is only accepted when it belongs to a build on the
+#      branch the selected Target Environment maps to. If it doesn't match
+#      (e.g. the label is only from a main-branch run but staging/develop
+#      was selected), the step now fails with a clear error instead of
+#      deploying the wrong branch's build. This makes Target Environment
+#      the source of truth, as requested.
+#
 # FLAGGED, NOT CHANGED:
 #   - The DataPlatform AzureCLI@2 step's inlineScript still only echoes a
 #     message — the `bash .../dataplatform/scripts/deploy.sh --env ...` call
@@ -273,21 +290,30 @@ stages:
                   $buildNumber = "$(buildNumber)"
 
                   if ($mode -eq "specific") {
-                    Write-Host "Resolving Run ID for DataPlatform-CI Build Number '$buildNumber' (definition 43)..."
+                    $targetBranch = "$(ArtifactBranch)"
+                    Write-Host "Resolving Run ID for DataPlatform-CI Build Number '$buildNumber' on branch '$targetBranch' (definition 43)..."
 
-                    $encoded = [System.Uri]::EscapeDataString($buildNumber)
-                    $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/builds?definitions=43&buildNumber=$encoded&api-version=7.1"
+                    # Build Number labels are NOT branch-scoped in Azure DevOps -- the same
+                    # label could in principle exist on a build from a different branch.
+                    # Filtering by branchName here makes the Target Environment parameter
+                    # (which sets ArtifactBranch) the source of truth: a buildNumber is only
+                    # accepted if it actually belongs to a build on the branch the selected
+                    # environment maps to. This prevents a stale/mismatched buildNumber from
+                    # silently deploying the wrong branch's build.
+                    $encodedBuild = [System.Uri]::EscapeDataString($buildNumber)
+                    $encodedBranch = [System.Uri]::EscapeDataString($targetBranch)
+                    $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/builds?definitions=43&buildNumber=$encodedBuild&branchName=$encodedBranch&api-version=7.1"
                     $headers = @{ Authorization = "Bearer $(System.AccessToken)" }
 
                     $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get
 
                     if ($response.count -eq 0) {
-                      Write-Error "No DataPlatform-CI run found with Build Number '$buildNumber' (definition 43). Check release-config.yml's dataplatform.buildNumber against Pipelines > DataPlatform-CI > Runs."
+                      Write-Error "No DataPlatform-CI run found with Build Number '$buildNumber' on branch '$targetBranch' (definition 43). Either this build was built from a different branch than the '${{ parameters.environment }}' environment expects, or the buildNumber in release-config.yml is wrong. Check Pipelines > DataPlatform-CI > Runs and confirm the run's source branch."
                       exit 1
                     }
 
                     $resolvedId = $response.value[0].id
-                    Write-Host "Resolved Build Number '$buildNumber' -> Run ID $resolvedId"
+                    Write-Host "Resolved Build Number '$buildNumber' (branch '$targetBranch') -> Run ID $resolvedId"
                     Write-Host "##vso[task.setvariable variable=resolvedBuildId]$resolvedId"
                   }
                   else {
@@ -374,21 +400,27 @@ stages:
                   $buildNumber = "$(buildNumber)"
 
                   if ($mode -eq "specific") {
-                    Write-Host "Resolving Run ID for AIML-CI Build Number '$buildNumber' (definition 44)..."
+                    $targetBranch = "$(ArtifactBranch)"
+                    Write-Host "Resolving Run ID for AIML-CI Build Number '$buildNumber' on branch '$targetBranch' (definition 44)..."
 
-                    $encoded = [System.Uri]::EscapeDataString($buildNumber)
-                    $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/builds?definitions=44&buildNumber=$encoded&api-version=7.1"
+                    # See the DataPlatform stage's Resolve step for why branchName is
+                    # included here: it makes the Target Environment parameter the
+                    # source of truth, so a buildNumber from the wrong branch is
+                    # rejected instead of silently deployed.
+                    $encodedBuild = [System.Uri]::EscapeDataString($buildNumber)
+                    $encodedBranch = [System.Uri]::EscapeDataString($targetBranch)
+                    $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/builds?definitions=44&buildNumber=$encodedBuild&branchName=$encodedBranch&api-version=7.1"
                     $headers = @{ Authorization = "Bearer $(System.AccessToken)" }
 
                     $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get
 
                     if ($response.count -eq 0) {
-                      Write-Error "No AIML-CI run found with Build Number '$buildNumber' (definition 44). Check release-config.yml's aiml.buildNumber against Pipelines > AIML-CI > Runs."
+                      Write-Error "No AIML-CI run found with Build Number '$buildNumber' on branch '$targetBranch' (definition 44). Either this build was built from a different branch than the '${{ parameters.environment }}' environment expects, or the buildNumber in release-config.yml is wrong. Check Pipelines > AIML-CI > Runs and confirm the run's source branch."
                       exit 1
                     }
 
                     $resolvedId = $response.value[0].id
-                    Write-Host "Resolved Build Number '$buildNumber' -> Run ID $resolvedId"
+                    Write-Host "Resolved Build Number '$buildNumber' (branch '$targetBranch') -> Run ID $resolvedId"
                     Write-Host "##vso[task.setvariable variable=resolvedBuildId]$resolvedId"
                   }
                   else {
@@ -481,21 +513,27 @@ stages:
                   $buildNumber = "$(buildNumber)"
 
                   if ($mode -eq "specific") {
-                    Write-Host "Resolving Run ID for WebApp-CI Build Number '$buildNumber' (definition 42)..."
+                    $targetBranch = "$(ArtifactBranch)"
+                    Write-Host "Resolving Run ID for WebApp-CI Build Number '$buildNumber' on branch '$targetBranch' (definition 42)..."
 
-                    $encoded = [System.Uri]::EscapeDataString($buildNumber)
-                    $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/builds?definitions=42&buildNumber=$encoded&api-version=7.1"
+                    # See the DataPlatform stage's Resolve step for why branchName is
+                    # included here: it makes the Target Environment parameter the
+                    # source of truth, so a buildNumber from the wrong branch is
+                    # rejected instead of silently deployed.
+                    $encodedBuild = [System.Uri]::EscapeDataString($buildNumber)
+                    $encodedBranch = [System.Uri]::EscapeDataString($targetBranch)
+                    $uri = "$(System.CollectionUri)$(System.TeamProject)/_apis/build/builds?definitions=42&buildNumber=$encodedBuild&branchName=$encodedBranch&api-version=7.1"
                     $headers = @{ Authorization = "Bearer $(System.AccessToken)" }
 
                     $response = Invoke-RestMethod -Uri $uri -Headers $headers -Method Get
 
                     if ($response.count -eq 0) {
-                      Write-Error "No WebApp-CI run found with Build Number '$buildNumber' (definition 42). Check release-config.yml's webapp.buildNumber against Pipelines > WebApp-CI > Runs."
+                      Write-Error "No WebApp-CI run found with Build Number '$buildNumber' on branch '$targetBranch' (definition 42). Either this build was built from a different branch than the '${{ parameters.environment }}' environment expects, or the buildNumber in release-config.yml is wrong. Check Pipelines > WebApp-CI > Runs and confirm the run's source branch."
                       exit 1
                     }
 
                     $resolvedId = $response.value[0].id
-                    Write-Host "Resolved Build Number '$buildNumber' -> Run ID $resolvedId"
+                    Write-Host "Resolved Build Number '$buildNumber' (branch '$targetBranch') -> Run ID $resolvedId"
                     Write-Host "##vso[task.setvariable variable=resolvedBuildId]$resolvedId"
                   }
                   else {
@@ -569,6 +607,13 @@ stages:
 #      that exact run instead of the branch's latest build. Each component's
 #      buildNumber is independent, so you can pin WebApp while leaving
 #      DataPlatform/AIML on latestFromBranch, etc.
+#   IMPORTANT: the Resolve step only accepts a buildNumber if it belongs to
+#   a build on the branch the selected Target Environment parameter maps to
+#   (main for production, develop for staging). A buildNumber that only
+#   exists on the other branch will make that stage FAIL rather than
+#   silently deploy the wrong branch's build — the Target Environment
+#   parameter always wins over a mismatched buildNumber, it doesn't get
+#   silently overridden by it.
 #
 # ─────────────────────────────────────────────────────────────────────────────
 # NOTES FOR THE DEVOPS ENGINEER IMPLEMENTING THIS
