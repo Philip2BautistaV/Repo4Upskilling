@@ -36,40 +36,48 @@
 #      <component>_downloadMode) alongside the existing <component>_enabled
 #      outputs, using the same `dependencies.ValidateConfig.outputs[...]`
 #      pattern already used for the enabled flags.
-#   5. Each deploy stage (DataPlatform/AIML/WebApp) maps those two new
-#      outputs into stage-level variables via `$[ dependencies... ]` runtime
-#      expressions, and its DownloadPipelineArtifact@2 task uses
+#   5. Each deploy stage (DataPlatform/AIML/WebApp) maps those two new Stage 0
+#      outputs into JOB-level `variables:` (inside the deployment job, not
+#      the stage) using the `stageDependencies` context:
+#        stageDependencies.<StageName>.<JobName>.outputs['<StepName>.<VarName>']
+#      Its DownloadPipelineArtifact@2 task then uses
 #      `buildVersionToDownload: $(downloadMode)` with both `buildId` and
 #      `branchName` supplied — the task ignores whichever one doesn't match
-#      the selected mode, so no extra conditional YAML is needed. (The first
-#      version of this wired the mapping at job level by mistake — see #6
-#      below for why that failed and how it was fixed.)
-#
-# CHANGES MADE IN THIS PASS (fix: buildNumber wasn't being picked up):
-#   6. Root cause of "Download DataPlatform Artifact" failing with
-#      `##[error]Unreachable code!` and Debug Branch showing blank
-#      buildNumber/downloadMode: the `variables:` block that maps Stage 0's
-#      outputs was placed inside the deployment JOB, not the STAGE. At job
-#      scope, the `dependencies` context means "sibling jobs in this same
-#      stage" — ValidateConfig is a different stage, so the expression
-#      silently resolved to empty, which made `buildVersionToDownload`
-#      empty too (a picklist input the task couldn't match to any mode).
-#      Moved `variables:` up to the stage level in all three deploy stages
-#      (same level as `condition:`/`dependsOn:`), matching how the stage
-#      `condition:` blocks already correctly use `dependencies` for
-#      cross-stage lookups.
-#   7. release-config.yml's buildNumber values (e.g. "20260730.2") turned out
-#      to be Azure DevOps' human-readable Build Number labels, not internal
-#      Run IDs — DownloadPipelineArtifact@2's `buildId` input needs the
-#      latter. Added a "Resolve <Component> Build ID" PowerShell step before
-#      each download that calls the Build REST API
+#      the selected mode, so no extra conditional YAML is needed.
+#      NOTE: this went through two wrong attempts before landing here — see
+#      #6 and #8 below. The one-line summary: a stage's `condition:` uses
+#      `dependencies.<Stage>.outputs[...]` for cross-stage lookups, but a
+#      job's `variables:` needs `stageDependencies.<Stage>.<Job>.outputs[...]`
+#      instead — these are NOT interchangeable despite both meaning
+#      "look at another stage's output".
+#   6. (First attempt, wrong) Wired the mapping as JOB-level `variables:`
+#      using the `dependencies` context (copying the condition's syntax).
+#      At job scope, `dependencies` means "sibling jobs in this SAME stage"
+#      — ValidateConfig is a different stage, so it silently resolved to
+#      empty. Symptom: Debug Branch showed blank buildNumber/downloadMode,
+#      and Download...Artifact failed with `##[error]Unreachable code!`
+#      (an empty picklist input the task couldn't match to any mode).
+#   7. release-config.yml's buildNumber values (e.g. "20260730.2") are Azure
+#      DevOps' human-readable Build Number labels, not internal Run IDs —
+#      DownloadPipelineArtifact@2's `buildId` input needs the latter. Added
+#      a "Resolve <Component> Build ID" PowerShell step before each download
+#      that calls the Build REST API
 #      (GET .../_apis/build/builds?definitions=<id>&buildNumber=<value>) to
 #      look up the matching run and sets `resolvedBuildId`, which the
-#      download task now uses instead of the raw config value. This step is
-#      skipped (a no-op) when downloadMode is latestFromBranch. Requires the
-#      pipeline's build service account to have read access to build results
-#      in this project, which it has by default for builds in the same
+#      download task uses instead of the raw config value. Skipped (a
+#      no-op) when downloadMode is latestFromBranch. Requires the pipeline's
+#      build service account to have read access to build results in this
+#      project, which it has by default for builds in the same
 #      project/organization.
+#   8. (Second attempt, also wrong) Moved the mapping to STAGE-level
+#      `variables:` still using `dependencies` — reasoning that stage scope
+#      should behave like the working `condition:` above it. It doesn't:
+#      `dependencies` only resolves cross-stage inside a `condition:`; a
+#      stage's `variables:` block does not get the same treatment. Symptom:
+#      ReadConfig's own log correctly showed `downloadMode=specific`, but
+#      the deploy stage's $(downloadMode) still came out wrong/unresolved.
+#      Fixed for real in #5 above by moving back to JOB-level `variables:`
+#      and switching to `stageDependencies`.
 #
 # FLAGGED, NOT CHANGED:
 #   - The DataPlatform AzureCLI@2 step's inlineScript still only echoes a
@@ -218,19 +226,21 @@ stages:
   #condition: eq(stagedependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_enabled'], 'True')
   condition: and(succeeded(), eq(dependencies.ValidateConfig.outputs['ReadConfig.configOutput.dp_enabled'], 'True'))
 
-  # NOTE: these must live here at the STAGE level, not inside the job below.
-  # At job scope, `dependencies` refers to sibling jobs in the SAME stage —
-  # ValidateConfig is a different stage, so a job-level $[ dependencies... ]
-  # here resolves to empty every time. At stage scope (this level), `dependencies`
-  # correctly refers to other stages, matching the `condition:` above.
-  variables:
-    buildNumber: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.dp_buildNumber'] ]
-    downloadMode: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.dp_downloadMode'] ]
-
   jobs:
     - deployment: DataPlatformDeploy
 
       environment: ${{ parameters.environment }}
+
+      # NOTE: cross-stage OUTPUT VARIABLES consumed inside steps (not a
+      # condition:) need the `stageDependencies` context at JOB level, not
+      # `dependencies` at stage level — `dependencies` at stage scope only
+      # works for a stage's own `condition:` (that's why dp_enabled gating
+      # already worked). This is the same syntax as the commented-out line
+      # above, just used where it actually applies:
+      #   stageDependencies.<StageName>.<JobName>.outputs['<StepName>.<VarName>']
+      variables:
+        buildNumber: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_buildNumber'] ]
+        downloadMode: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.dp_downloadMode'] ]
 
       strategy:
         runOnce:
@@ -269,7 +279,7 @@ stages:
                     Write-Host "##vso[task.setvariable variable=resolvedBuildId]$resolvedId"
                   }
                   else {
-                    Write-Host "downloadMode=latestFromBranch -- skipping Run ID resolution."
+                    Write-Host "downloadMode='$mode' (not 'specific') -- skipping Run ID resolution, will use latestFromBranch."
                   }
                 displayName: Resolve DataPlatform Build ID
                 env:
@@ -322,17 +332,16 @@ stages:
       )
     )
 
-  # See the note on Stage 1 — these must be STAGE-level variables (dependencies
-  # here refers to other stages), not job-level (where dependencies would mean
-  # sibling jobs in this same stage and resolve to empty).
-  variables:
-    buildNumber: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.ai_buildNumber'] ]
-    downloadMode: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.ai_downloadMode'] ]
-
   jobs:
     - deployment: AIMLDeploy
 
       environment: ${{ parameters.environment }}
+
+      # See the note on Stage 1 — cross-stage output variables need
+      # JOB-level `stageDependencies`, not stage-level `dependencies`.
+      variables:
+        buildNumber: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_buildNumber'] ]
+        downloadMode: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.ai_downloadMode'] ]
 
       strategy:
         runOnce:
@@ -371,7 +380,7 @@ stages:
                     Write-Host "##vso[task.setvariable variable=resolvedBuildId]$resolvedId"
                   }
                   else {
-                    Write-Host "downloadMode=latestFromBranch -- skipping Run ID resolution."
+                    Write-Host "downloadMode='$mode' (not 'specific') -- skipping Run ID resolution, will use latestFromBranch."
                   }
                 displayName: Resolve AIML Build ID
                 env:
@@ -430,17 +439,16 @@ stages:
       )
     )
 
-  # See the note on Stage 1 — these must be STAGE-level variables (dependencies
-  # here refers to other stages), not job-level (where dependencies would mean
-  # sibling jobs in this same stage and resolve to empty).
-  variables:
-    buildNumber: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_buildNumber'] ]
-    downloadMode: $[ dependencies.ValidateConfig.outputs['ReadConfig.configOutput.web_downloadMode'] ]
-
   jobs:
     - deployment: WebAppDeploy
 
       environment: ${{ parameters.environment }}
+
+      # See the note on Stage 1 — cross-stage output variables need
+      # JOB-level `stageDependencies`, not stage-level `dependencies`.
+      variables:
+        buildNumber: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_buildNumber'] ]
+        downloadMode: $[ stageDependencies.ValidateConfig.ReadConfig.outputs['configOutput.web_downloadMode'] ]
 
       strategy:
         runOnce:
@@ -479,7 +487,7 @@ stages:
                     Write-Host "##vso[task.setvariable variable=resolvedBuildId]$resolvedId"
                   }
                   else {
-                    Write-Host "downloadMode=latestFromBranch -- skipping Run ID resolution."
+                    Write-Host "downloadMode='$mode' (not 'specific') -- skipping Run ID resolution, will use latestFromBranch."
                   }
                 displayName: Resolve WebApp Build ID
                 env:
@@ -574,14 +582,15 @@ stages:
 #    uncomment and replace `condition: succeeded()` with the block above when
 #    you're ready to gate AIML/WebApp the same way DataPlatform is gated.
 #
-# 6. buildNumber support: each STAGE's `variables:` block (not the job's —
-#    see the note above each stage) pulls buildNumber and downloadMode from
-#    Stage 0's outputs at runtime, and the DownloadPipelineArtifact@2 task
-#    switches between "specific" (exact build) and "latestFromBranch"
-#    purely by which value ReadConfig published — no per-stage conditionals
-#    needed. If a future component is added, give it the same buildNumber
-#    field in release-config.yml plus the matching dp/ai/web-style outputs,
-#    stage variables, and a "Resolve <Component> Build ID" step here.
+# 6. buildNumber support: each deployment JOB's `variables:` block (using
+#    the `stageDependencies` context — see the note above each stage) pulls
+#    buildNumber and downloadMode from Stage 0's outputs at runtime, and the
+#    DownloadPipelineArtifact@2 task switches between "specific" (exact
+#    build) and "latestFromBranch" purely by which value ReadConfig
+#    published — no per-stage conditionals needed. If a future component is
+#    added, give it the same buildNumber field in release-config.yml plus
+#    the matching dp/ai/web-style outputs, job variables, and a
+#    "Resolve <Component> Build ID" step here.
 #
 # 7. The "Resolve <Component> Build ID" steps call the Build REST API using
 #    $(System.AccessToken), which requires no extra setup for YAML
