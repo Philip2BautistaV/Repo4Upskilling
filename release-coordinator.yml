@@ -127,7 +127,7 @@ resources:
     - pipeline: webapp-ci
       project: DBG-ACN
       source: WebApp-CI
-      branch: $(ArtifactBranch)
+#      branch: $(ArtifactBranch)
       trigger:
         branches:
           include:
@@ -136,7 +136,7 @@ resources:
     - pipeline: dataplatform-ci
       project: DBG-ACN
       source: DataPlatform-CI
-      branch: $(ArtifactBranch)
+#      branch: $(ArtifactBranch)
       trigger:
         branches:
           include:
@@ -145,7 +145,7 @@ resources:
     - pipeline: aiml-ci
       project: DBG-ACN
       source: AIML-CI
-      branch: $(ArtifactBranch)
+#      branch: $(ArtifactBranch)
       trigger:
         branches:
           include:
