@@ -131,6 +131,10 @@ stages:
               Write-Host "##vso[task.setvariable variable=ai_enabled;isOutput=true]$($ai.ToString())"
               Write-Host "##vso[task.setvariable variable=web_enabled;isOutput=true]$($web.ToString())"
 
+              Write-Host "##vso[task.setvariable variable=dp_buildNumber;isOutput=true]$($config.components.dataplatform.buildNumber)"
+              Write-Host "##vso[task.setvariable variable=ai_buildNumber;isOutput=true]$($config.components.aiml.buildNumber)"
+              Write-Host "##vso[task.setvariable variable=web_buildNumber;isOutput=true]$($config.components.webapp.buildNumber)"
+  
 # -------------------------------------------------------------------
 # Stage 1 - Data Platform
 # -------------------------------------------------------------------
