@@ -29,6 +29,6 @@ components:
     enabled: true                     # WebApp is in scope for Release 1
     pipelineName: "WebApp-CI"
     branch: "$(ArtifactBranch)"
-    buildNumber: "20260730.2"
+    buildNumber: ""
     artifactName: "webapp-drop"
     note: "WebApp always deploys last — it is the consumer of all upstream components"
