@@ -14,14 +14,14 @@ components:
     enabled: true                    # Set to true when DB/Fabric changes are in scope
     pipelineName: "DataPlatform-CI"
     branch: "$(ArtifactBranch)"
-    buildNumber:
+    buildNumber: 123.123
     artifactName: "dataplatform-drop"
 
   aiml:
     enabled: true                    # Set to true when ML pipeline changes are in scope
     pipelineName: "AIML-CI"
     branch: "$(ArtifactBranch)"
-    buildNumber:
+    buildNumber: 234.234
     artifactName: "aiml-drop"
     note: "AIML always deploys after DataPlatform when both are enabled"
 
@@ -29,6 +29,6 @@ components:
     enabled: true                     # WebApp is in scope for Release 1
     pipelineName: "WebApp-CI"
     branch: "$(ArtifactBranch)"
-    buildNumber:
+    buildNumber: 345.345
     artifactName: "webapp-drop"
     note: "WebApp always deploys last — it is the consumer of all upstream components"
